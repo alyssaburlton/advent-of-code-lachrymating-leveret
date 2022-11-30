@@ -1,5 +1,5 @@
 val solvers = listOf(
-    Day1_2021()
+    Day1(),
 )
 
 fun main(args: Array<String>) {
