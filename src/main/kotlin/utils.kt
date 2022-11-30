@@ -1,4 +1,7 @@
 import java.io.File
 
+fun readStringList(filename: String) =
+    File("src/main/resources/$filename.txt").readLines()
+
 fun readIntegerList(filename: String) =
-    File("src/main/resources/$filename.txt").readLines().map { it.toInt() }
+    readStringList(filename).map { it.toInt() }
