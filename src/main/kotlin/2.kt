@@ -2,7 +2,6 @@ class Day2 : Solver {
     override val day = 2
 
     private val input = readStringList("2")
-    private val rpc = listOf("A", "B", "C")
 
     override fun partA() = input.map(::getScore).sum()
 
@@ -36,13 +35,14 @@ class Day2 : Solver {
             else -> 6
         }
 
+        val rpc = listOf("A", "B", "C")
         val oppIx = rpc.indexOf(values[0])
-        val myMove = when (play) {
+        val myMove = 1 + when (play) {
             "X" -> (oppIx + 2) % 3
             "Y" -> oppIx
             else -> (oppIx + 1) % 3
         }
 
-        return myMove + score + 1
+        return myMove + score
     }
 }

@@ -3,7 +3,7 @@ val solvers = listOf(
     Day2()
 )
 
-fun main(args: Array<String>) {
+fun main() {
     solvers.forEach { solver ->
         println("${solver.day}A: ${solver.partA()}")
         println("${solver.day}B: ${solver.partB()}")

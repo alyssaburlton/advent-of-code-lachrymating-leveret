@@ -1,5 +1,8 @@
 import java.io.File
 
+fun readString(filename: String) =
+    File("src/main/resources/$filename.txt").readText()
+
 fun readStringList(filename: String) =
     File("src/main/resources/$filename.txt").readLines()
 
