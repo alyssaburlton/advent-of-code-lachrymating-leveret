@@ -2,6 +2,7 @@ class Day3 : Solver {
     override val day = 3
 
     private val input = readStringList("3")
+    private val itemsByPriority = (('a'..'z') + ('A'..'Z')).toList()
 
     override fun partA() = input.map(::findItemInBothCompartments).sum()
 
@@ -31,11 +32,7 @@ class Day3 : Solver {
         }
 
         val character = rucksackIntersection.first().toCharArray()[0]
-        return if (character.isUpperCase()) {
-            character.code - 38
-        } else {
-            character.code - 96
-        }
+        return itemsByPriority.indexOf(character) + 1
     }
 
     private fun rucksackToLetterSet(rucksack: String) = rucksack.split("").filter { it.isNotEmpty() }.toSet()
