@@ -3,33 +3,25 @@ class Day4 : Solver {
 
     private val input = readStringList("4")
 
-    override fun partA(): Int {
-        val ranges = input.count { pairLine ->
-            val xAndY = pairLine.split(",")
-            val x = xAndY[0].split("-").map { it.toInt() }
-            val y = xAndY[1].split("-").map { it.toInt() }
-
-            val xList = (x[0]..x[1]).toSet()
-            val yList = (y[0]..y[1]).toSet()
-
-            xList.containsAll(yList) || yList.containsAll(xList)
-        }
-
-        return ranges
+    override fun partA() = input.count { pairLine ->
+        val (xList, yList) = parseSectionAssignments(pairLine)
+        xList.containsAll(yList) || yList.containsAll(xList)
     }
 
-    override fun partB(): Int {
-        val ranges = input.count { pairLine ->
-            val xAndY = pairLine.split(",")
-            val x = xAndY[0].split("-").map { it.toInt() }
-            val y = xAndY[1].split("-").map { it.toInt() }
+    override fun partB() = input.count { pairLine ->
+        val (xList, yList) = parseSectionAssignments(pairLine)
+        xList.intersect(yList).isNotEmpty()
+    }
 
-            val xList = (x[0]..x[1]).toSet()
-            val yList = (y[0]..y[1]).toSet()
+    private fun parseSectionAssignments(str: String): Pair<Set<Int>, Set<Int>> {
+        val xAndY = str.split(",")
+        val xList = parseSectionAssignment(xAndY[0])
+        val yList = parseSectionAssignment(xAndY[1])
+        return xList to yList
+    }
 
-            xList.intersect(yList).isNotEmpty()
-        }
-
-        return ranges
+    private fun parseSectionAssignment(str: String): Set<Int> {
+        val (start, end) = str.split("-").map { it.toInt() }
+        return (start..end).toSet()
     }
 }
