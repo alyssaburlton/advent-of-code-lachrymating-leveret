@@ -24,7 +24,7 @@ class Day3 : Solver {
     }
 
     private fun getScore(rucksackIntersection: Set<Char>): Int {
-        val character = rucksackIntersection.first()
+        val character = rucksackIntersection.only()
         return itemsByPriority.indexOf(character) + 1
     }
 

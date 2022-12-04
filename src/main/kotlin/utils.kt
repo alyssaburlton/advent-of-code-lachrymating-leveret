@@ -14,3 +14,11 @@ fun readIntegerGroupedList(filename: String) =
 
 fun readIntegerList(filename: String) =
     readStringList(filename).map { it.toInt() }
+
+fun <E> Collection<E>.only(): E {
+    if (size != 1) {
+        throw Error("Trying to get only element, but size is $size")
+    }
+
+    return first()
+}
