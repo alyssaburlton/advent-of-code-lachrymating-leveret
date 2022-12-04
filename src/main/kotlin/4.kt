@@ -1,15 +1,13 @@
 class Day4 : Solver {
     override val day = 4
 
-    private val input = readStringList("4")
+    private val sectionAssignments = readStringList("4").map(::parseSectionAssignments)
 
-    override fun partA() = input.count { pairLine ->
-        val (elfOne, elfTwo) = parseSectionAssignments(pairLine)
+    override fun partA() = sectionAssignments.count { (elfOne, elfTwo) ->
         elfOne.containsAll(elfTwo) || elfTwo.containsAll(elfOne)
     }
 
-    override fun partB() = input.count { pairLine ->
-        val (elfOne, elfTwo) = parseSectionAssignments(pairLine)
+    override fun partB() = sectionAssignments.count { (elfOne, elfTwo)  ->
         elfOne.intersect(elfTwo).isNotEmpty()
     }
 
