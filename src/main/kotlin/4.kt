@@ -4,24 +4,20 @@ class Day4 : Solver {
     private val input = readStringList("4")
 
     override fun partA() = input.count { pairLine ->
-        val (xList, yList) = parseSectionAssignments(pairLine)
-        xList.containsAll(yList) || yList.containsAll(xList)
+        val (elfOne, elfTwo) = parseSectionAssignments(pairLine)
+        elfOne.containsAll(elfTwo) || elfTwo.containsAll(elfOne)
     }
 
     override fun partB() = input.count { pairLine ->
-        val (xList, yList) = parseSectionAssignments(pairLine)
-        xList.intersect(yList).isNotEmpty()
+        val (elfOne, elfTwo) = parseSectionAssignments(pairLine)
+        elfOne.intersect(elfTwo).isNotEmpty()
     }
 
-    private fun parseSectionAssignments(str: String): Pair<Set<Int>, Set<Int>> {
-        val xAndY = str.split(",")
-        val xList = parseSectionAssignment(xAndY[0])
-        val yList = parseSectionAssignment(xAndY[1])
-        return xList to yList
-    }
+    private fun parseSectionAssignments(pairLine: String) =
+        pairLine.split(",").map(::parseSectionAssignment)
 
     private fun parseSectionAssignment(str: String): Set<Int> {
-        val (start, end) = str.split("-").map { it.toInt() }
+        val (start, end) = str.split("-").map(String::toInt)
         return (start..end).toSet()
     }
 }
