@@ -5,7 +5,7 @@ class Day1 : Solver {
 
     override fun partA() = input.maxOf { it.sum() }
 
-    override fun partB(): Int {
+    override fun partB(): Any {
         val sorted = input.sortedByDescending { it.sum() }
         return sorted.subList(0, 3).sumOf { it.sum() }
     }

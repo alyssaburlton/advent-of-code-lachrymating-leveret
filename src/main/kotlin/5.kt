@@ -2,23 +2,30 @@ class Day5 : Solver {
     override val day = 5
 
     private val input = readGroupedList("5")
+    private val stacks = parseStacks(input[0])
+    private val instructions = input[1]
 
-    override fun partA(): Int {
-        val s = parseStacks(input[0])
-
-        print(input[1])
-        val result = input[1].fold(s) { stacks, instruction ->
-            processInstruction(stacks, instruction)
-        }
-
-        println(result)
-
-        println(result.values.map { it.last() }.joinToString(""))
-
-        return - 1
+    override fun partA(): Any {
+        val result = instructions.fold(stacks, ::processInstructionA)
+        return result.values.map { it.last() }.joinToString("")
     }
 
-    private fun processInstruction(stacks: Map<Int, List<Char>>, instruction: String): Map<Int, List<Char>> {
+    override fun partB(): Any {
+        val result = instructions.fold(stacks, ::processInstructionB)
+        return result.values.map { it.last() }.joinToString("")
+    }
+
+    private fun processInstructionA(stacks: Map<Int, List<Char>>, instruction: String) =
+        processInstruction(stacks, instruction, false)
+
+    private fun processInstructionB(stacks: Map<Int, List<Char>>, instruction: String) =
+        processInstruction(stacks, instruction, true)
+
+    private fun processInstruction(
+        stacks: Map<Int, List<Char>>,
+        instruction: String,
+        reverse: Boolean
+    ): Map<Int, List<Char>> {
         val parts = instruction.split(" ")
         val amountToMove = parts[1].toInt()
         val fromColIx = parts[3].toInt()
@@ -26,7 +33,8 @@ class Day5 : Solver {
         val fromCol = stacks[fromColIx]!!
         val toCol = stacks[toColIx]!!
 
-        val thingsToMove = fromCol.reversed().take(amountToMove).reversed()
+        val items = fromCol.reversed().take(amountToMove)
+        val thingsToMove = if (reverse) items.reversed() else items
 
         val newToCol = toCol + thingsToMove
         val newFromCol = fromCol.dropLast(thingsToMove.size)
@@ -38,9 +46,8 @@ class Day5 : Solver {
     }
 
     private fun parseStacks(rawGrid: List<String>): Map<Int, List<Char>> {
-        val replaced: List<String> = rawGrid.map { it.replace("    ", "-").replace("]", "").replace("[", "").replace(" ", "")}
-
-        println(replaced)
+        val replaced: List<String> =
+            rawGrid.map { it.replace("    ", "-").replace("]", "").replace("[", "").replace(" ", "") }
 
         val columnCount = replaced[0].length
         val rowCount = replaced.size - 1
@@ -50,13 +57,8 @@ class Day5 : Solver {
             (col + 1) to list
         }
 
-        println(columnMap)
-
         return columnMap
     }
 
-    override fun partB(): Int {
 
-        return -1
-    }
 }

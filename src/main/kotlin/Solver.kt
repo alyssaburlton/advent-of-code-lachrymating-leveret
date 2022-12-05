@@ -1,6 +1,6 @@
 interface Solver {
     val day: Int
 
-    fun partA(): Int
-    fun partB(): Int
+    fun partA(): Any?
+    fun partB(): Any?
 }
