@@ -21,17 +21,17 @@ fun parseGrid(gridLines: List<String>): Map<Point, String> {
 fun <T> Map<Point, String>.transformValues(transformer: (String) -> T): Map<Point, T> =
     mapValues { entry -> transformer(entry.value) }
 
-fun Map<Point, String>.xMax() = keys.maxOf { it.x }
-fun Map<Point, String>.xMin() = keys.minOf { it.x }
-fun Map<Point, String>.yMax() = keys.maxOf { it.y }
-fun Map<Point, String>.yMin() = keys.minOf { it.y }
+fun Map<Point, *>.xMax() = keys.maxOf { it.x }
+fun Map<Point, *>.xMin() = keys.minOf { it.x }
+fun Map<Point, *>.yMax() = keys.maxOf { it.y }
+fun Map<Point, *>.yMin() = keys.minOf { it.y }
 
-fun Map<Point, String>.prettyString() =
+fun Map<Point, *>.prettyString() =
     (yMin()..yMax()).joinToString("\n") { y ->
-        (xMin()..xMax()).joinToString("") { x -> getValue(Point(x, y)) }
+        (xMin()..xMax()).joinToString("") { x -> getValue(Point(x, y)).toString() }
     }
 
-fun Map<Point, String>.print() {
+fun Map<Point, *>.print() {
     println(prettyString())
 }
 
@@ -42,5 +42,17 @@ fun Point.neighbours() = listOf(
     Point(x + 1, y)
 )
 
-fun Map<Point, String>.neighbours(pt: Point) =
+fun Map<Point, *>.neighbours(pt: Point) =
     pt.neighbours().filter(::containsKey)
+
+fun <T> Map<Point, T>.transpose() =
+    mapKeys { (key, _) -> Point(key.y, key.x) }
+
+fun <T> Map<Point, T>.rows() =
+    (yMin()..yMax()).map { y ->
+        (xMin()..xMax()).map { x ->
+            this[Point(x, y)]!!
+        }
+    }
+
+fun <T> Map<Point, T>.columns() = transpose().rows()

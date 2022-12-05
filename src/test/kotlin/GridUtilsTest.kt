@@ -1,3 +1,4 @@
+import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
@@ -38,6 +39,41 @@ class GridUtilsTest {
             Point(3, 2),
             Point(2, 1),
             Point(2, 3)
+        )
+    }
+
+    @Test
+    fun `Should transpose correctly`() {
+        val grid = readStringGrid("example_grid")
+        val transposed = grid.transpose()
+        transposed.prettyString() shouldBe readString("example_grid_transposed")
+    }
+
+    @Test
+    fun `Should get rows correctly`() {
+        val grid = readStringGrid("example_grid").transformValues(String::toInt)
+        val rows = grid.rows()
+
+        rows.shouldContainExactly(
+            listOf(0, 0, 0, 0, 1, 0),
+            listOf(1, 1, 0, 0, 1, 0),
+            listOf(1, 0, 0, 0, 1, 0),
+            listOf(0, 1, 0, 1, 1, 0),
+        )
+    }
+
+    @Test
+    fun `Should get columns correctly`() {
+        val grid = readStringGrid("example_grid").transformValues(String::toInt)
+        val cols = grid.columns()
+
+        cols.shouldContainExactly(
+            listOf(0, 1, 1, 0),
+            listOf(0, 1, 0, 1),
+            listOf(0, 0, 0, 0),
+            listOf(0, 0, 0, 1),
+            listOf(1, 1, 1, 1),
+            listOf(0, 0, 0, 0),
         )
     }
 }

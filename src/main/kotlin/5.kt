@@ -7,31 +7,31 @@ class Day5 : Solver {
 
     override fun partA(): Any {
         val result = instructions.fold(stacks, ::processInstructionA)
-        return result.values.map { it.last() }.joinToString("")
+        return result.joinToString("") { it.last() }
     }
 
     override fun partB(): Any {
         val result = instructions.fold(stacks, ::processInstructionB)
-        return result.values.map { it.last() }.joinToString("")
+        return result.joinToString("") { it.last() }
     }
 
-    private fun processInstructionA(stacks: Map<Int, List<Char>>, instruction: String) =
+    private fun processInstructionA(stacks: List<List<String>>, instruction: String) =
         processInstruction(stacks, instruction, false)
 
-    private fun processInstructionB(stacks: Map<Int, List<Char>>, instruction: String) =
+    private fun processInstructionB(stacks: List<List<String>>, instruction: String) =
         processInstruction(stacks, instruction, true)
 
     private fun processInstruction(
-        stacks: Map<Int, List<Char>>,
+        stacks: List<List<String>>,
         instruction: String,
         reverse: Boolean
-    ): Map<Int, List<Char>> {
+    ): List<List<String>> {
         val parts = instruction.split(" ")
         val amountToMove = parts[1].toInt()
-        val fromColIx = parts[3].toInt()
-        val toColIx = parts[5].toInt()
-        val fromCol = stacks[fromColIx]!!
-        val toCol = stacks[toColIx]!!
+        val fromColIx = parts[3].toInt() - 1
+        val toColIx = parts[5].toInt() - 1
+        val fromCol = stacks[fromColIx]
+        val toCol = stacks[toColIx]
 
         val items = fromCol.reversed().take(amountToMove)
         val thingsToMove = if (reverse) items.reversed() else items
@@ -39,26 +39,14 @@ class Day5 : Solver {
         val newToCol = toCol + thingsToMove
         val newFromCol = fromCol.dropLast(thingsToMove.size)
 
-        val newMap = stacks.toMutableMap()
+        val newMap = stacks.toMutableList()
         newMap[fromColIx] = newFromCol
         newMap[toColIx] = newToCol
-        return newMap.toMap()
+        return newMap.toList()
     }
 
-    private fun parseStacks(rawGrid: List<String>): Map<Int, List<Char>> {
-        val replaced: List<String> =
-            rawGrid.map { it.replace("    ", "-").replace("]", "").replace("[", "").replace(" ", "") }
-
-        val columnCount = replaced[0].length
-        val rowCount = replaced.size - 1
-
-        val columnMap = (0 until columnCount).associate { col ->
-            val list = (0 until rowCount).map { row -> replaced[row][col] }.filter { it != '-' }.reversed()
-            (col + 1) to list
-        }
-
-        return columnMap
-    }
-
-
+    private fun parseStacks(rawGrid: List<String>) = parseGrid(rawGrid)
+        .columns()
+        .filter { it.last().isNotBlank() }
+        .map { column -> column.dropLast(1).filter { it.isNotBlank() }.reversed() }
 }
