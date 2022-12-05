@@ -5,44 +5,39 @@ class Day5 : Solver {
     private val stacks = parseStacks(input[0])
     private val instructions = input[1]
 
-    override fun partA(): Any {
-        val result = instructions.fold(stacks, ::processInstructionA)
-        return result.joinToString("") { it.last() }
-    }
+    override fun partA() =
+        instructions.fold(stacks, ::processInstructionA).let(::toTopCrateString)
 
-    override fun partB(): Any {
-        val result = instructions.fold(stacks, ::processInstructionB)
-        return result.joinToString("") { it.last() }
-    }
+    override fun partB() =
+        instructions.fold(stacks, ::processInstructionB).let(::toTopCrateString)
+
+    private fun toTopCrateString(stacks: List<List<String>>) =
+        stacks.joinToString("") { it.last() }
 
     private fun processInstructionA(stacks: List<List<String>>, instruction: String) =
-        processInstruction(stacks, instruction, false)
+        processInstruction(stacks, instruction, true)
 
     private fun processInstructionB(stacks: List<List<String>>, instruction: String) =
-        processInstruction(stacks, instruction, true)
+        processInstruction(stacks, instruction, false)
 
     private fun processInstruction(
         stacks: List<List<String>>,
         instruction: String,
         reverse: Boolean
     ): List<List<String>> {
-        val parts = instruction.split(" ")
-        val amountToMove = parts[1].toInt()
-        val fromColIx = parts[3].toInt() - 1
-        val toColIx = parts[5].toInt() - 1
-        val fromCol = stacks[fromColIx]
-        val toCol = stacks[toColIx]
+        val match = Regex("move (\\d+) from (\\d+) to (\\d+)").find(instruction)!!
+        val (amountToMove, from, to) = match.destructured.toList().map(String::toInt)
 
-        val items = fromCol.reversed().take(amountToMove)
+        val items = stacks[from - 1].takeLast(amountToMove)
         val thingsToMove = if (reverse) items.reversed() else items
 
-        val newToCol = toCol + thingsToMove
-        val newFromCol = fromCol.dropLast(thingsToMove.size)
-
-        val newMap = stacks.toMutableList()
-        newMap[fromColIx] = newFromCol
-        newMap[toColIx] = newToCol
-        return newMap.toList()
+        return stacks.mapIndexed { index, stack ->
+            when (index) {
+                from - 1 -> stack.dropLast(thingsToMove.size)
+                to - 1 -> stack + thingsToMove
+                else -> stack
+            }
+        }
     }
 
     private fun parseStacks(rawGrid: List<String>) = parseGrid(rawGrid)
