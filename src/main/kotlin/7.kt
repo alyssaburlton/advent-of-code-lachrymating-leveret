@@ -1,14 +1,29 @@
-data class MockFile(val size: Int, val name: String, val dir: Boolean)
-data class IndexedOutput(val index: Int, val output: String)
-
 private const val TOTAL_SPACE = 70000000
 private const val UNUSED_REQUIRED = 30000000
+
+enum class OutputType {
+    FILE,
+    CD
+}
+
+sealed interface Output {
+    val index: Int
+    val type: OutputType
+}
+
+data class FileOutput(override val index: Int, val size: Int, val name: String, val dir: Boolean) : Output {
+    override val type = OutputType.FILE
+}
+
+data class CdOutput(override val index: Int, val cdArg: String) : Output {
+    override val type = OutputType.CD
+}
 
 class Day7 : Solver {
     override val day = 7
 
     private val input: List<String> = readStringList("7")
-    private val output = input.mapIndexed(::IndexedOutput)
+    private val output = input.mapIndexedNotNull(::parseOutput)
 
     override fun partA() = parseDirectorySizes()
         .filter { it.value <= 100000 }
@@ -23,39 +38,40 @@ class Day7 : Solver {
         return sizeMap.values.filter { it > spaceToBeFreed }.min()
     }
 
-    private fun parseDirectorySizes() =
-        output
-        .filter { !isCommand(it) }
-        .groupBy(::computeDirectory)
-        .mapValues { entry -> entry.value.map(::parseFile) }
-        .let(::getSizes)
-
-    private fun computeDirectory(file: IndexedOutput) =
-        output
-            .filter(::isCommand)
-            .filter { it.index < file.index && it.output != "$ ls" }
-            .fold(listOf("/")) { pwd, output ->
-                when (val cdArgument = output.output.split(" ").last()) {
-                    ".." -> pwd.dropLast(1)
-                    "/" -> listOf("/")
-                    else -> pwd + cdArgument
-                }
-            }.joinToString(">")
-
-    private fun parseFile(fileOutput: IndexedOutput): MockFile {
-        val outputParts = fileOutput.output.split(" ")
-        return when (outputParts[0]) {
-            "dir" -> MockFile(0, outputParts[1], true)
-            else -> MockFile(outputParts[0].toInt(), outputParts[1], false)
+    private fun parseOutput(index: Int, outputLine: String): Output? {
+        val tokens = outputLine.split(" ")
+        return when (tokens[1]) {
+            "ls" -> null
+            "cd" -> CdOutput(index, tokens[2])
+            else -> when (tokens[0]) {
+                "dir" -> FileOutput(index, 0, tokens[1], true)
+                else -> FileOutput(index, tokens[0].toInt(), tokens[1], false)
+            }
         }
     }
 
-    private fun isCommand(indexedOutput: IndexedOutput) = indexedOutput.output.startsWith("$")
+    private fun parseDirectorySizes() =
+        output
+            .filterIsInstance<FileOutput>()
+            .groupBy(::computeDirectory)
+            .let(::getSizes)
 
-    private fun getSizes(dirMap: Map<String, List<MockFile>>) =
+    private fun computeDirectory(file: FileOutput) =
+        output
+            .filterIsInstance<CdOutput>()
+            .filter { it.index < file.index }
+            .fold(listOf("/")) { pwd, output ->
+                when (output.cdArg) {
+                    ".." -> pwd.dropLast(1)
+                    "/" -> listOf("/")
+                    else -> pwd + output.cdArg
+                }
+            }.joinToString(">")
+
+    private fun getSizes(dirMap: Map<String, List<FileOutput>>) =
         dirMap.mapValues { entry -> getSize(dirMap, entry.key) }
 
-    private fun getSize(dirMap: Map<String, List<MockFile>>, dir: String): Int {
+    private fun getSize(dirMap: Map<String, List<FileOutput>>, dir: String): Int {
         val flatFiles = dirMap.getValue(dir)
         val fileSize = flatFiles.sumOf { it.size }
         val subDirectories = flatFiles.filter { it.dir }
