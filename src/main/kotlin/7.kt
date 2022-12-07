@@ -1,23 +1,13 @@
 private const val TOTAL_SPACE = 70000000
 private const val UNUSED_REQUIRED = 30000000
 
-enum class OutputType {
-    FILE,
-    CD
-}
-
 sealed interface Output {
     val index: Int
-    val type: OutputType
 }
 
-data class FileOutput(override val index: Int, val size: Int, val name: String, val dir: Boolean) : Output {
-    override val type = OutputType.FILE
-}
+data class FileOutput(override val index: Int, val size: Int, val name: String, val dir: Boolean) : Output
 
-data class CdOutput(override val index: Int, val cdArg: String) : Output {
-    override val type = OutputType.CD
-}
+data class CdOutput(override val index: Int, val cdArg: String) : Output
 
 class Day7 : Solver {
     override val day = 7
