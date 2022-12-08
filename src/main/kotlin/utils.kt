@@ -22,3 +22,6 @@ fun <E> Collection<E>.only(): E {
 
     return first()
 }
+
+fun <E> List<E>.productOf(transform: (E) -> Int) = map(transform).product()
+fun List<Int>.product() = fold(1) { x, y -> x * y }
