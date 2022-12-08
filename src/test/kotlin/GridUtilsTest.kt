@@ -7,19 +7,19 @@ class GridUtilsTest {
     @Test
     fun `Should be able to parse a grid from a file`() {
         val grid = readStringGrid("example_grid")
-        grid[Point(0, 0)] shouldBe "0"
+        grid.map[Point(0, 0)] shouldBe "0"
 
-        grid.xMin() shouldBe 0
-        grid.xMax() shouldBe 5
-        grid.yMin() shouldBe 0
-        grid.yMax() shouldBe 3
+        grid.xMin shouldBe 0
+        grid.xMax shouldBe 5
+        grid.yMin shouldBe 0
+        grid.yMax shouldBe 3
     }
 
     @Test
     fun `Should be able to transform grid values`() {
         val grid = readStringGrid("example_grid")
         val intGrid = grid.transformValues { it.toInt() }
-        intGrid[Point(0, 0)] shouldBe 0
+        intGrid.map[Point(0, 0)] shouldBe 0
     }
 
     @Test
@@ -52,7 +52,7 @@ class GridUtilsTest {
     @Test
     fun `Should get rows correctly`() {
         val grid = readStringGrid("example_grid").transformValues(String::toInt)
-        val rows = grid.rows()
+        val rows = grid.rows
 
         rows.shouldContainExactly(
             listOf(0, 0, 0, 0, 1, 0),
@@ -65,7 +65,7 @@ class GridUtilsTest {
     @Test
     fun `Should get columns correctly`() {
         val grid = readStringGrid("example_grid").transformValues(String::toInt)
-        val cols = grid.columns()
+        val cols = grid.columns
 
         cols.shouldContainExactly(
             listOf(0, 1, 1, 0),

@@ -41,7 +41,7 @@ class Day5 : Solver {
     }
 
     private fun parseStacks(rawGrid: List<String>) = parseGrid(rawGrid)
-        .columns()
+        .columns
         .filter { it.last().isNotBlank() }
         .map { column -> column.dropLast(1).filter { it.isNotBlank() }.reversed() }
 }
