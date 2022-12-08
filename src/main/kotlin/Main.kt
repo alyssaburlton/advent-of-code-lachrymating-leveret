@@ -5,7 +5,8 @@ val solvers = listOf(
     Day4(),
     Day5(),
     Day6(),
-    Day7()
+    Day7(),
+    Day8()
 )
 
 fun main() {

@@ -6,7 +6,6 @@ sealed interface Output {
 }
 
 data class FileOutput(override val index: Int, val size: Int, val name: String, val dir: Boolean) : Output
-
 data class CdOutput(override val index: Int, val cdArg: String) : Output
 
 class Day7 : Solver {
