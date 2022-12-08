@@ -8,14 +8,13 @@ class Day8 : Solver {
 
         val lines = getOrderedTreeLines(pt)
         lines.any { line ->
-            line.none { it >= height }
+            line.all { it < height }
         }
     }
 
     override fun partB() = input.keys.maxOf { pt ->
         val height = input.getValue(pt)
         val lines = getOrderedTreeLines(pt)
-
         lines.productOf { scenicScore(height, it) }
     }
 
@@ -25,7 +24,7 @@ class Day8 : Solver {
         ((point.y + 1)..input.yMax()).map { input.getValue(Point(point.x, it)) },
         (input.yMin() until point.y).map { input.getValue(Point(point.x, it)) }.reversed()
     )
-    
+
     private fun scenicScore(myHeight: Int, directionTrees: List<Int>): Int {
         val ix = directionTrees.indexOfFirst { it >= myHeight }
         return if (ix == -1) directionTrees.size else ix + 1
