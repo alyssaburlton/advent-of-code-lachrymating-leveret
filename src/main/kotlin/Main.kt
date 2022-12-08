@@ -11,8 +11,13 @@ val solvers = listOf(
 
 fun main() {
     solvers.forEach { solver ->
-        println("${solver.day}A: ${solver.partA()}")
-        println("${solver.day}B: ${solver.partB()}")
+        val timerA = DurationTimer()
+        val resultA = solver.partA()
+        println("(${timerA.duration()}ms) ${solver.day}A: $resultA")
+
+        val timerB = DurationTimer()
+        val resultB = solver.partB()
+        println("(${timerB.duration()}ms) ${solver.day}B: $resultB")
         println()
     }
 }
