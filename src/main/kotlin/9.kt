@@ -5,28 +5,7 @@ class Day9 : Solver {
 
     private val input: List<String> = readStringList("9")
 
-    override fun partA(): Any {
-        var headPosition = Point(0, 0)
-        var tailPosition = Point(0, 0)
-        val positionsVisited = mutableSetOf<Point>()
-        positionsVisited.add(tailPosition)
-
-        input.forEach { instruction ->
-            val (dir, amount) = instruction.split(" ")
-
-            val increments = (1..amount.toInt())
-            increments.forEach { _ ->
-                headPosition = moveHead(dir, headPosition)
-
-                if (!headPosition.neighboursWithDiagonals().contains(tailPosition)) {
-                    tailPosition = moveTail(headPosition, tailPosition)
-                    positionsVisited.add(tailPosition)
-                }
-            }
-        }
-
-        return positionsVisited.size
-    }
+    override fun partA() = moveRope(1)
 
     private fun moveHead(direction: String, pos: Point) = when (direction) {
         "U" -> Point(pos.x, pos.y - 1)
@@ -43,8 +22,6 @@ class Day9 : Solver {
         val normalX = if (xVector != 0) xVector.sign * (xVector / xVector) else 0
         val normalY = if (yVector != 0) yVector.sign * (yVector / yVector) else 0
 
-        // println("yVector: $yVector, Normal y: $normalY")
-
         if (normalX > 1 || normalY > 1) {
             throw Error("Moving too much")
         }
@@ -52,12 +29,13 @@ class Day9 : Solver {
         return Point(tailPos.x + normalX, tailPos.y + normalY)
     }
 
-    override fun partB(): Any {
+    override fun partB() = moveRope(9)
+
+    private fun moveRope(tailCount: Int): Int {
         val positions = mutableListOf<Point>()
-        (0..9).forEach { _ ->
+        (0..tailCount).forEach { _ ->
             positions.add(Point(0, 0))
         }
-
 
         val positionsVisited = mutableSetOf<Point>()
         positionsVisited.add(Point(0, 0))
@@ -70,18 +48,16 @@ class Day9 : Solver {
 
                 positions[0] = moveHead(dir, positions[0])
 
-                (1..9).forEach { tailIndex ->
+                (1..tailCount).forEach { tailIndex ->
                     val headIndex = tailIndex - 1
                     if (!positions[headIndex].neighboursWithDiagonals().contains(positions[tailIndex])) {
                         positions[tailIndex] = moveTail(positions[headIndex], positions[tailIndex])
 
-                        if (tailIndex == 9) {
+                        if (tailIndex == tailCount) {
                             positionsVisited.add(positions[tailIndex])
                         }
-
                     }
                 }
-
             }
         }
 
