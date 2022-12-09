@@ -1,11 +1,36 @@
 import kotlin.math.sign
 
+data class RopeState(val positions: List<Point>, val tailPoints: Set<Point>, val tailCount: Int) {
+    constructor(tailCount: Int) : this((0..tailCount).map { Point(0, 0) }, setOf(Point(0, 0)), tailCount)
+}
+
 class Day9 : Solver {
     override val day = 9
 
     private val input: List<String> = readStringList("9")
 
     override fun partA() = moveRope(1)
+
+    override fun partB() = moveRope(9)
+
+    private fun RopeState.moveHead(direction: String): RopeState {
+        val newPositions = positions.replaceAt(0, moveHead(direction, positions[0]))
+        return RopeState(newPositions, this.tailPoints, tailCount)
+    }
+
+    private fun RopeState.moveTail(tailIndex: Int): RopeState {
+        val headIndex = tailIndex - 1
+        if (positions[headIndex].neighboursWithDiagonals().contains(positions[tailIndex])) {
+            return this
+        }
+
+        val newTailPosition = moveTail(positions[headIndex], positions[tailIndex])
+        return RopeState(
+            positions.replaceAt(tailIndex, newTailPosition),
+            if (tailIndex == positions.size - 1) tailPoints + newTailPosition else tailPoints,
+            tailCount
+        )
+    }
 
     private fun moveHead(direction: String, pos: Point) = when (direction) {
         "U" -> Point(pos.x, pos.y - 1)
@@ -29,38 +54,17 @@ class Day9 : Solver {
         return Point(tailPos.x + normalX, tailPos.y + normalY)
     }
 
-    override fun partB() = moveRope(9)
+    private fun moveRope(tailCount: Int) = input.fold(RopeState(tailCount), ::processSingleInstruction).tailPoints.size
 
-    private fun moveRope(tailCount: Int): Int {
-        val positions = mutableListOf<Point>()
-        (0..tailCount).forEach { _ ->
-            positions.add(Point(0, 0))
+    private fun processSingleInstruction(initialState: RopeState, instruction: String): RopeState {
+        val (dir, amount) = instruction.split(" ")
+        return (1..amount.toInt()).fold(initialState) { ropeState, _ -> processSingleStep(ropeState, dir) }
+    }
+
+    private fun processSingleStep(initialState: RopeState, direction: String): RopeState {
+        val movedHeadState = initialState.moveHead(direction)
+        return (1..movedHeadState.tailCount).fold(movedHeadState) { ropeState, tailIndex ->
+            ropeState.moveTail(tailIndex)
         }
-
-        val positionsVisited = mutableSetOf<Point>()
-        positionsVisited.add(Point(0, 0))
-
-        input.forEach { instruction ->
-            val (dir, amount) = instruction.split(" ")
-
-            val increments = (1..amount.toInt())
-            increments.forEach { _ ->
-
-                positions[0] = moveHead(dir, positions[0])
-
-                (1..tailCount).forEach { tailIndex ->
-                    val headIndex = tailIndex - 1
-                    if (!positions[headIndex].neighboursWithDiagonals().contains(positions[tailIndex])) {
-                        positions[tailIndex] = moveTail(positions[headIndex], positions[tailIndex])
-
-                        if (tailIndex == tailCount) {
-                            positionsVisited.add(positions[tailIndex])
-                        }
-                    }
-                }
-            }
-        }
-
-        return positionsVisited.size
     }
 }
