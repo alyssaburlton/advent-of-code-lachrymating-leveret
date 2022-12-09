@@ -1,9 +1,5 @@
 import kotlin.math.sign
 
-data class RopeState(val positions: List<Point>, val tailPoints: Set<Point>, val tailCount: Int) {
-    constructor(tailCount: Int) : this((0..tailCount).map { Point(0, 0) }, setOf(Point(0, 0)), tailCount)
-}
-
 class Day9 : Solver {
     override val day = 9
 
@@ -13,23 +9,18 @@ class Day9 : Solver {
 
     override fun partB() = moveRope(9)
 
-    private fun RopeState.moveHead(direction: String): RopeState {
-        val newPositions = positions.replaceAt(0, moveHead(direction, positions[0]))
-        return RopeState(newPositions, this.tailPoints, tailCount)
-    }
+    private fun initialState(tailCount: Int) = (0..tailCount).map { Point(0, 0) }
 
-    private fun RopeState.moveTail(tailIndex: Int): RopeState {
+    private fun List<Point>.moveHead(direction: String) = this.replaceAt(0, moveHead(direction, this[0]))
+
+    private fun List<Point>.moveTail(tailIndex: Int): List<Point> {
         val headIndex = tailIndex - 1
-        if (positions[headIndex].neighboursWithDiagonals().contains(positions[tailIndex])) {
+        if (this[headIndex].neighboursWithDiagonals().contains(this[tailIndex])) {
             return this
         }
 
-        val newTailPosition = moveTail(positions[headIndex], positions[tailIndex])
-        return RopeState(
-            positions.replaceAt(tailIndex, newTailPosition),
-            if (tailIndex == positions.size - 1) tailPoints + newTailPosition else tailPoints,
-            tailCount
-        )
+        val newTailPosition = moveTail(this[headIndex], this[tailIndex])
+        return this.replaceAt(tailIndex, newTailPosition)
     }
 
     private fun moveHead(direction: String, pos: Point) = when (direction) {
@@ -54,16 +45,25 @@ class Day9 : Solver {
         return Point(tailPos.x + normalX, tailPos.y + normalY)
     }
 
-    private fun moveRope(tailCount: Int) = input.fold(RopeState(tailCount), ::processSingleInstruction).tailPoints.size
+    private fun moveRope(tailCount: Int) =
+        input
+            .runningFold(listOf(initialState(tailCount)), ::processSingleInstruction)
+            .flatten()
+            .map { it.last() }.distinct().size
 
-    private fun processSingleInstruction(initialState: RopeState, instruction: String): RopeState {
+    private fun processSingleInstruction(initialState: List<List<Point>>, instruction: String): List<List<Point>> {
         val (dir, amount) = instruction.split(" ")
-        return (1..amount.toInt()).fold(initialState) { ropeState, _ -> processSingleStep(ropeState, dir) }
+        return (1..amount.toInt()).runningFold(initialState.last()) { ropeState, _ ->
+            processSingleStep(
+                ropeState,
+                dir
+            )
+        }
     }
 
-    private fun processSingleStep(initialState: RopeState, direction: String): RopeState {
+    private fun processSingleStep(initialState: List<Point>, direction: String): List<Point> {
         val movedHeadState = initialState.moveHead(direction)
-        return (1..movedHeadState.tailCount).fold(movedHeadState) { ropeState, tailIndex ->
+        return (1 until movedHeadState.size).fold(movedHeadState) { ropeState, tailIndex ->
             ropeState.moveTail(tailIndex)
         }
     }
