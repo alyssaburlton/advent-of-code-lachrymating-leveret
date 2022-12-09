@@ -4,18 +4,18 @@ class Day8 : Solver {
     private val grid = readStringGrid("8").transformValues(String::toInt)
 
     override fun partA() = grid.entries.count { (pt, height) ->
-        val lines = getOrderedTreeLinesTwo(pt)
+        val lines = getOrderedTreeLines(pt)
         lines.any { line ->
             line.all { it < height }
         }
     }
 
     override fun partB() = grid.entries.maxOf { (pt, height) ->
-        val lines = getOrderedTreeLinesTwo(pt)
+        val lines = getOrderedTreeLines(pt)
         lines.productOf { scenicScore(height, it) }
     }
 
-    private fun getOrderedTreeLinesTwo(point: Point): List<List<Int>> {
+    private fun getOrderedTreeLines(point: Point): List<List<Int>> {
         val row = grid.rows[point.y]
         val col = grid.columns[point.x]
 

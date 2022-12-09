@@ -7,6 +7,13 @@ fun Point.neighbours() = listOf(
     Point(x + 1, y)
 )
 
+fun Point.neighboursWithDiagonals() = neighbours() + listOf(
+    Point(x - 1, y - 1),
+    Point(x - 1, y + 1),
+    Point(x + 1, y - 1),
+    Point(x + 1, y + 1)
+)
+
 fun readStringGrid(filename: String): Grid<String> {
     val list = readStringList(filename)
     return parseGrid(list)
