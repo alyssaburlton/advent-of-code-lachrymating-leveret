@@ -32,17 +32,10 @@ class Day9 : Solver {
     }
 
     private fun moveTail(headPos: Point, tailPos: Point): Point {
-        val xVector = headPos.x - tailPos.x
-        val yVector = headPos.y - tailPos.y
+        val xNormal = (headPos.x - tailPos.x).sign
+        val yNormal = (headPos.y - tailPos.y).sign
 
-        val normalX = if (xVector != 0) xVector.sign * (xVector / xVector) else 0
-        val normalY = if (yVector != 0) yVector.sign * (yVector / yVector) else 0
-
-        if (normalX > 1 || normalY > 1) {
-            throw Error("Moving too much")
-        }
-
-        return Point(tailPos.x + normalX, tailPos.y + normalY)
+        return Point(tailPos.x + xNormal, tailPos.y + yNormal)
     }
 
     private fun moveRope(tailCount: Int) =
@@ -54,10 +47,7 @@ class Day9 : Solver {
     private fun processSingleInstruction(initialState: List<List<Point>>, instruction: String): List<List<Point>> {
         val (dir, amount) = instruction.split(" ")
         return (1..amount.toInt()).runningFold(initialState.last()) { ropeState, _ ->
-            processSingleStep(
-                ropeState,
-                dir
-            )
+            processSingleStep(ropeState, dir)
         }
     }
 
