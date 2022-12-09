@@ -32,4 +32,4 @@ private fun timedSolution(solver: Solver, part: String, solverFn: Solver.() -> A
     println("$ITALIC${colour(duration)}(${duration}ms)$RESET_COLOR ${solver.day}$part: $result")
 }
 
-private fun colour(duration: Long): String = if (duration < 1000) GREEN else if (duration < 5000) AMBER else RED
+private fun colour(duration: Long): String = if (duration < 500) GREEN else if (duration < 5000) AMBER else RED
