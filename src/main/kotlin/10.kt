@@ -7,28 +7,28 @@ data class CpuState(
     val pixels: List<String>
 )
 
-const val PROGRAM_LENGTH = 240
-
 class Day10 : Solver {
     override val day = 10
 
     private val input = readStringList("10")
+    private val programLength = 2 * input.count { it.startsWith("addx") } + input.count { it.startsWith("noop") }
 
-    private fun initialCpuState() = CpuState(emptyList(), input.map(::parseInstruction), 1, 1, false, emptyList())
+    override fun partA() =
+        processCpuStates()
+            .filter { (20..programLength step 40).contains(it.cycle) }
+            .sumOf { it.cycle * it.register }
 
-    override fun partA(): Any {
-        val cpuStates =
-            (0 until PROGRAM_LENGTH).runningFold(initialCpuState()) { cpuState, _ -> cpuState.doTick() }
-        return cpuStates.filter { (20..PROGRAM_LENGTH step 40).contains(it.cycle) }.sumOf { it.cycle * it.register }
-    }
-
-    override fun partB() =
-        (0 until PROGRAM_LENGTH).fold(initialCpuState()) { cpuState, _ -> cpuState.doTick() }.getPixelImage()
+    override fun partB() = processCpuStates().last().getPixelImage()
 
     private fun parseInstruction(instruction: String) =
         if (instruction.startsWith("addx")) {
             instruction.split(" ")[1].toInt()
         } else null
+
+    private fun processCpuStates() =
+        (0 until programLength).runningFold(initialCpuState()) { cpuState, _ -> cpuState.doTick() }
+
+    private fun initialCpuState() = CpuState(emptyList(), input.map(::parseInstruction), 1, 1, false, emptyList())
 
     private fun CpuState.getPixelImage() = pixels.chunked(40).joinToString("\n", "\n") { it.joinToString("") }
 
