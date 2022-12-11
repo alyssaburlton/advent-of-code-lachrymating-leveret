@@ -4,7 +4,7 @@ data class MonkeyTest(val divisor: Int, val monkeyIfTrue: Int, val monkeyIfFalse
 class Day11 : Solver {
     override val day = 11
 
-    private val input: List<List<String>> = readGroupedList("11")
+    private val input: List<List<String>> = readGroupedList("11e")
 
     override fun partA(): Any {
         var currentMonkeys = parseMonkeys()
@@ -82,6 +82,54 @@ class Day11 : Solver {
     }
 
     override fun partB(): Any {
-        return ""
+        var currentMonkeys = parseMonkeys()
+        val monkeyIndexes = currentMonkeys.keys.sorted()
+        val itemsInspected = mutableMapOf<Int, Long>()
+
+        val uniqueDivisors = currentMonkeys.values.map { it.test.divisor }.distinct()
+        val modBy = uniqueDivisors.distinct().product()
+
+        (1..10000).forEach { _ ->
+            monkeyIndexes.forEach { monkeyIx ->
+                val newItemLocations = mutableMapOf<Int, List<Long>>()
+                // println("Monkey $monkeyIx:")
+                val monkey = currentMonkeys.getValue(monkeyIx)
+                val inspecting = itemsInspected.getOrDefault(monkeyIx, 0) + monkey.items.size
+                itemsInspected[monkeyIx] = inspecting
+
+                monkey.items.forEach { item ->
+                    // println("   Monkey inspects an item with a worry level of $item")
+                    val newValue = monkey.operation(item) % modBy
+                    // println("       After boredom: $newValue")
+                    val newMonkey =
+                        if (newValue % monkey.test.divisor == 0L) monkey.test.monkeyIfTrue else monkey.test.monkeyIfFalse
+
+                    // println("       Thrown to monkey $newMonkey")
+
+                    val items = newItemLocations.getOrDefault(newMonkey, emptyList())
+                    newItemLocations[newMonkey] = items + newValue
+                }
+
+                // println(newItemLocations)
+                currentMonkeys = currentMonkeys.mapValues { (newMonkeyIx, newMonkey) ->
+                    when (newMonkeyIx) {
+                        monkeyIx -> newMonkey.copy(items = emptyList())
+                        else -> newMonkey.copy(
+                            items = newMonkey.items + newItemLocations.getOrDefault(
+                                newMonkeyIx,
+                                emptyList()
+                            )
+                        )
+                    }
+                }
+            }
+
+            // println(currentMonkeys.mapValues { it.value.items })
+        }
+
+        println(itemsInspected)
+        val result = itemsInspected.values.sortedDescending()
+        println(result)
+        return result[0] * result[1]
     }
 }
