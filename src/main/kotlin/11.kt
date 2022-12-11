@@ -11,6 +11,46 @@ class Day11 : Solver {
 
     override fun partB() = calculateMonkeyBusiness(10000, false)
 
+    private fun calculateMonkeyBusiness(rounds: Int, divideByThree: Boolean): Long {
+        val initialMonkeys =
+            parseMonkeys().let { monkeys -> monkeys.map { updateMonkeyOperation(it, monkeys, divideByThree) } }
+
+        return (1..rounds)
+            .fold(initialMonkeys) { monkeysForRound, _ -> doMonkeyRound(monkeysForRound) }
+            .map { it.itemsInspected }
+            .sortedDescending()
+            .take(2)
+            .product()
+    }
+
+    private fun doMonkeyRound(monkeysForRound: List<Monkey>) =
+        monkeysForRound.indices.fold(monkeysForRound, ::doMonkeyTurn)
+
+    private fun doMonkeyTurn(currentMonkeys: List<Monkey>, monkeyIx: Int): List<Monkey> {
+        val monkey = currentMonkeys[monkeyIx]
+
+        val thrownItems = monkey.items.map { item ->
+            val newValue = monkey.operation(item)
+            ThrownItem(newValue, monkey.calculateThrow(newValue))
+        }
+
+        return currentMonkeys.mapIndexed { newMonkeyIx, newMonkey ->
+            when (newMonkeyIx) {
+                monkeyIx -> monkey.copy(
+                    items = emptyList(),
+                    itemsInspected = monkey.itemsInspected + monkey.items.size
+                )
+
+                else -> newMonkey.copy(
+                    items = newMonkey.items + thrownItems.filter { it.newMonkey == newMonkeyIx }.map { it.item }
+                )
+            }
+        }
+    }
+
+    private fun Monkey.calculateThrow(item: Long) =
+        if (item % test.divisor == 0L) test.monkeyIfTrue else test.monkeyIfFalse
+
     private fun parseMonkeys() = input.map(::parseMonkey)
 
     private fun parseMonkey(input: List<String>): Monkey {
@@ -31,40 +71,10 @@ class Day11 : Solver {
         return Monkey(startingItems, 0, operation, MonkeyTest(testDivisor, monkeyIfTrue, monkeyIfFalse))
     }
 
-    private fun calculateMonkeyBusiness(rounds: Int, divideByThree: Boolean): Long {
-        val initialMonkeys = parseMonkeys()
-        val monkeyIndexes = initialMonkeys.indices
-        val modBy = initialMonkeys.map { it.test.divisor }.distinct().product()
-
-        val resultingMonkeys = (1..rounds).fold(parseMonkeys()) { monkeysForRound, _ ->
-            monkeyIndexes.fold(monkeysForRound) { currentMonkeys, monkeyIx ->
-                val monkey = currentMonkeys[monkeyIx]
-
-                val thrownItems = monkey.items.map { item ->
-                    val newValue = if (divideByThree) monkey.operation(item) / 3 else monkey.operation(item) % modBy
-
-                    val newMonkey =
-                        if (newValue % monkey.test.divisor == 0L) monkey.test.monkeyIfTrue else monkey.test.monkeyIfFalse
-
-                    ThrownItem(newValue, newMonkey)
-                }
-
-                currentMonkeys.mapIndexed { newMonkeyIx, newMonkey ->
-                    when (newMonkeyIx) {
-                        monkeyIx -> newMonkey.copy(
-                            items = emptyList(),
-                            itemsInspected = newMonkey.itemsInspected + monkey.items.size
-                        )
-
-                        else -> newMonkey.copy(
-                            items = newMonkey.items + thrownItems.filter { it.newMonkey == newMonkeyIx }.map { it.item }
-                        )
-                    }
-                }
-            }
-        }
-
-        val result = resultingMonkeys.map { it.itemsInspected }.sortedDescending()
-        return result[0] * result[1]
+    private fun updateMonkeyOperation(monkey: Monkey, monkeys: List<Monkey>, divideByThree: Boolean): Monkey {
+        val modBy = monkeys.map { it.test.divisor }.distinct().product()
+        return monkey.copy(
+            operation = { if (divideByThree) monkey.operation(it) / 3 else monkey.operation(it) % modBy }
+        )
     }
 }
