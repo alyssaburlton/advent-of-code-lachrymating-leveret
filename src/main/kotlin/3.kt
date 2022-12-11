@@ -3,18 +3,16 @@ class Day3 : Solver {
 
     private val input = readStringList("3")
 
-    override fun partA() = input.map(::splitIntoCompartments).sumOf(this::scoreOverlappingItem)
+    override fun partA() = input.map(::splitIntoCompartments).sumOf(this::intersectAndScore)
 
-    override fun partB() = input.chunked(3).sumOf(this::scoreOverlappingItem)
+    override fun partB() = input.chunked(3).sumOf(this::intersectAndScore)
 
     private fun splitIntoCompartments(rucksack: String) = rucksack.chunked(rucksack.length / 2)
 
-    private fun scoreOverlappingItem(group: List<String>) =
-        group.map(::rucksackToLetterSet).let(this@Day3::intersectAndScore)
-
-    private fun intersectAndScore(rucksacks: List<Set<Char>>) =
-        rucksacks
-            .fold(rucksacks.first(), Set<Char>::intersect)
+    private fun intersectAndScore(group: List<String>) =
+        group
+            .map(::rucksackToLetterSet)
+            .reduce(Set<Char>::intersect)
             .only()
             .let(::scoreItem)
 

@@ -1,5 +1,6 @@
-data class Monkey(val items: List<Long>, val operation: (Long) -> Long, val test: MonkeyTest)
+data class Monkey(val items: List<Long>, val itemsInspected: Long, val operation: (Long) -> Long, val test: MonkeyTest)
 data class MonkeyTest(val divisor: Int, val monkeyIfTrue: Int, val monkeyIfFalse: Int)
+data class ThrownItem(val item: Long, val newMonkey: Int)
 
 class Day11 : Solver {
     override val day = 11
@@ -10,11 +11,7 @@ class Day11 : Solver {
 
     override fun partB() = calculateMonkeyBusiness(10000, false)
 
-    private fun parseMonkeys(): Map<Int, Monkey> {
-        return input
-            .groupBy { it[0].split(" ")[1].replace(":", "").toInt() }
-            .mapValues { (_, value) -> parseMonkey(value.only()) }
-    }
+    private fun parseMonkeys() = input.map(::parseMonkey)
 
     private fun parseMonkey(input: List<String>): Monkey {
         val startingItemStr = input[1].split(": ")[1]
@@ -31,49 +28,43 @@ class Day11 : Solver {
         val monkeyIfTrue = input[4].split("throw to monkey ")[1].toInt()
         val monkeyIfFalse = input[5].split("throw to monkey ")[1].toInt()
 
-        return Monkey(startingItems, operation, MonkeyTest(testDivisor, monkeyIfTrue, monkeyIfFalse))
+        return Monkey(startingItems, 0, operation, MonkeyTest(testDivisor, monkeyIfTrue, monkeyIfFalse))
     }
 
     private fun calculateMonkeyBusiness(rounds: Int, divideByThree: Boolean): Long {
-        var currentMonkeys = parseMonkeys()
-        val monkeyIndexes = currentMonkeys.keys.sorted()
-        val itemsInspected = mutableMapOf<Int, Long>()
+        val initialMonkeys = parseMonkeys()
+        val monkeyIndexes = initialMonkeys.indices
+        val modBy = initialMonkeys.map { it.test.divisor }.distinct().product()
 
-        val uniqueDivisors = currentMonkeys.values.map { it.test.divisor }.distinct()
-        val modBy = uniqueDivisors.distinct().product()
+        val resultingMonkeys = (1..rounds).fold(parseMonkeys()) { monkeysForRound, _ ->
+            monkeyIndexes.fold(monkeysForRound) { currentMonkeys, monkeyIx ->
+                val monkey = currentMonkeys[monkeyIx]
 
-        (1..rounds).forEach { _ ->
-            monkeyIndexes.forEach { monkeyIx ->
-                val newItemLocations = mutableMapOf<Int, List<Long>>()
-                val monkey = currentMonkeys.getValue(monkeyIx)
-                val inspecting = itemsInspected.getOrDefault(monkeyIx, 0) + monkey.items.size
-                itemsInspected[monkeyIx] = inspecting
-
-                monkey.items.forEach { item ->
+                val thrownItems = monkey.items.map { item ->
                     val newValue = if (divideByThree) monkey.operation(item) / 3 else monkey.operation(item) % modBy
 
                     val newMonkey =
                         if (newValue % monkey.test.divisor == 0L) monkey.test.monkeyIfTrue else monkey.test.monkeyIfFalse
 
-                    val items = newItemLocations.getOrDefault(newMonkey, emptyList())
-                    newItemLocations[newMonkey] = items + newValue
+                    ThrownItem(newValue, newMonkey)
                 }
 
-                currentMonkeys = currentMonkeys.mapValues { (newMonkeyIx, newMonkey) ->
+                currentMonkeys.mapIndexed { newMonkeyIx, newMonkey ->
                     when (newMonkeyIx) {
-                        monkeyIx -> newMonkey.copy(items = emptyList())
+                        monkeyIx -> newMonkey.copy(
+                            items = emptyList(),
+                            itemsInspected = newMonkey.itemsInspected + monkey.items.size
+                        )
+
                         else -> newMonkey.copy(
-                            items = newMonkey.items + newItemLocations.getOrDefault(
-                                newMonkeyIx,
-                                emptyList()
-                            )
+                            items = newMonkey.items + thrownItems.filter { it.newMonkey == newMonkeyIx }.map { it.item }
                         )
                     }
                 }
             }
         }
 
-        val result = itemsInspected.values.sortedDescending()
+        val result = resultingMonkeys.map { it.itemsInspected }.sortedDescending()
         return result[0] * result[1]
     }
 }

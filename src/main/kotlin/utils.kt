@@ -24,6 +24,6 @@ fun <E> Collection<E>.only(): E {
 }
 
 fun <E> List<E>.productOf(transform: (E) -> Int) = map(transform).product()
-fun List<Int>.product() = fold(1) { x, y -> x * y }
+fun List<Int>.product() = reduce(Int::times)
 
 fun <E> List<E>.replaceAt(index: Int, newValue: E) = subList(0, index) + newValue + subList(index + 1, size)
