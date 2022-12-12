@@ -23,15 +23,25 @@ class Day12 : Solver {
 
     override fun partA() = getMinimumSteps(myPosition)
 
-    override fun partB() = grid.map.entries
+    override fun partB() = getPotentialStartingPoints()
+        .minOf(::getMinimumSteps)
+
+    /**
+     * Eliminate any point whose only neighbours are either others of elevation 0, or impossible to move to
+     */
+    private fun getPotentialStartingPoints() = grid.map.entries
         .filter { it.value == 0 }
         .map { it.key }
-        .minOf(::getMinimumSteps)
+        .filterNot { pt ->
+            cachedNeighbours.getValue(pt).all { neighbour ->
+                grid.getValue(neighbour) == 0
+            }
+        }
 
     private fun getMinimumSteps(startingPosition: Point): Int {
         val startingPaths = listOf(listOf(startingPosition))
         val result = explorePaths(startingPaths, mutableSetOf(startingPosition))
-        return result.minOfOrNull { it.size - 1 } ?: Int.MAX_VALUE
+        return result.minOf { it.size - 1 }
     }
 
     private fun explorePaths(

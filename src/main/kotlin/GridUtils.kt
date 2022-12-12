@@ -1,3 +1,5 @@
+import kotlin.math.abs
+
 data class Point(val x: Int, val y: Int)
 
 fun Point.neighbours() = listOf(
@@ -6,6 +8,8 @@ fun Point.neighbours() = listOf(
     Point(x - 1, y),
     Point(x + 1, y)
 )
+
+fun Point.stepDistance(other: Point) = abs(x - other.x) + abs(y - other.y)
 
 fun Point.neighboursWithDiagonals() = neighbours() + listOf(
     Point(x - 1, y - 1),
