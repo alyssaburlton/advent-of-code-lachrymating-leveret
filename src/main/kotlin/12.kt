@@ -31,7 +31,7 @@ class Day12 : Solver {
             currentPaths = currentPaths.distinctBy { it.last() }
         }
 
-        return (currentPaths.minByOrNull { it.size }?.size ?: Int.MAX_VALUE) - 1
+        return (currentPaths.minOfOrNull { it.size } ?: Int.MAX_VALUE) - 1
     }
 
     private fun takeAllSteps(

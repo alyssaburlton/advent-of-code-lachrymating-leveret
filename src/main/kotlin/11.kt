@@ -34,17 +34,19 @@ class Day11 : Solver {
             ThrownItem(newValue, monkey.calculateThrow(newValue))
         }
 
+        val thrownMonkeys = thrownItems.map { it.newMonkey }.distinct()
+
         return currentMonkeys.mapIndexed { newMonkeyIx, newMonkey ->
-            when (newMonkeyIx) {
-                monkeyIx -> monkey.copy(
+            if (newMonkeyIx == monkeyIx) {
+                monkey.copy(
                     items = emptyList(),
                     itemsInspected = monkey.itemsInspected + monkey.items.size
                 )
-
-                else -> newMonkey.copy(
+            } else if (thrownMonkeys.contains(newMonkeyIx)) {
+                newMonkey.copy(
                     items = newMonkey.items + thrownItems.filter { it.newMonkey == newMonkeyIx }.map { it.item }
                 )
-            }
+            } else newMonkey
         }
     }
 
