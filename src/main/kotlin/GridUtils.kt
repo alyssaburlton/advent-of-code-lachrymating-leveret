@@ -48,6 +48,8 @@ class Grid<T>(val map: Map<Point, T>) {
 
     val entries = map.entries
 
+    fun getValue(pt: Point) = map.getValue(pt)
+
     fun prettyString() = (yMin..yMax).joinToString("\n") { y ->
         (xMin..xMax).joinToString("") { x -> map.getValue(Point(x, y)).toString() }
     }
