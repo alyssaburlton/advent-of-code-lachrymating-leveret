@@ -18,18 +18,18 @@ class Day12 : Solver {
     override fun partB() = getMinimumSteps(desiredPosition, ::canStepBackwards) { grid.getValue(it) == 0 }
 
     private fun canStepForwards(myElevation: Int, neighbourElevation: Int) = neighbourElevation <= myElevation + 1
-
     private fun canStepBackwards(myElevation: Int, neighbourElevation: Int) = neighbourElevation >= myElevation - 1
 
     private fun getMinimumSteps(
         startingPosition: Point,
         stepValidator: (Int, Int) -> Boolean,
         stopCondition: (Point) -> Boolean
-    ): Int {
-        val startingPaths = listOf(listOf(startingPosition))
-        val result = explorePaths(startingPaths, setOf(startingPosition), stepValidator, stopCondition)
-        return result.minOf { it.size - 1 }
-    }
+    ) = explorePaths(
+        listOf(listOf(startingPosition)),
+        setOf(startingPosition),
+        stepValidator,
+        stopCondition
+    ).minOf { it.size - 1 }
 
     private fun explorePaths(
         currentPaths: List<List<Point>>,
@@ -58,10 +58,9 @@ class Day12 : Solver {
             return listOf(path)
         }
 
-        val currentElevation = grid.getValue(currentPoint)
-        val validNeighbours = grid.neighbours(currentPoint).filter { neighbour ->
-            !visited.contains(neighbour) && stepValidator(currentElevation, grid.getValue(neighbour))
-        }
-        return validNeighbours.map { path + it }
+        return grid.neighbours(currentPoint)
+            .filter { neighbour ->
+                !visited.contains(neighbour) && stepValidator(grid.getValue(currentPoint), grid.getValue(neighbour))
+            }.map { path + it }
     }
 }
