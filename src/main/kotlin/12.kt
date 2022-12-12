@@ -2,61 +2,62 @@ class Day12 : Solver {
     override val day = 12
 
     private val input = readStringGrid("12")
-    private val elevations = ('a'..'z').map { it.toString() }
     private val myPosition = input.entries.first { entry -> entry.value == "S" }.key
     private val desiredPosition = input.entries.first { entry -> entry.value == "E" }.key
 
-    private val updatedMap = input.transformValues { value ->
+    private val grid = input.transformValues { value ->
         when (value) {
             "S" -> 0
             "E" -> 25
-            else -> elevations.indexOf(value)
+            else -> ('a'..'z').map { it.toString() }.indexOf(value)
+        }
+    }
+
+    // Pre-cache valid neighbours up front
+    private val cachedNeighbours = grid.map.keys.associateWith { pt ->
+        grid.neighbours(pt).filter { neighbour ->
+            val newElevation = grid.getValue(neighbour)
+            newElevation <= grid.getValue(pt) + 1
         }
     }
 
     override fun partA() = getMinimumSteps(myPosition)
 
-    override fun partB(): Any {
-        val startingPoints = updatedMap.map.entries.filter { it.value == 0 }.map { it.key }
-        return startingPoints.minOf(::getMinimumSteps)
-    }
+    override fun partB() = grid.map.entries
+        .filter { it.value == 0 }
+        .map { it.key }
+        .minOf(::getMinimumSteps)
 
     private fun getMinimumSteps(startingPosition: Point): Int {
-        val ptToShortestRoute = mutableMapOf<Point, Int>()
-        var currentPaths = listOf(listOf(startingPosition))
-        while (currentPaths.any { it.last() != desiredPosition }) {
-            currentPaths =
-                currentPaths.flatMap { path -> takeAllSteps(desiredPosition, path, updatedMap, ptToShortestRoute) }
+        val startingPaths = listOf(listOf(startingPosition))
+        val result = explorePaths(startingPaths, mutableSetOf(startingPosition))
+        return result.minOfOrNull { it.size - 1 } ?: Int.MAX_VALUE
+    }
 
-            currentPaths = currentPaths.distinctBy { it.last() }
+    private fun explorePaths(
+        currentPaths: List<List<Point>>,
+        visited: MutableSet<Point>
+    ): List<List<Point>> {
+        if (currentPaths.all { it.last() == desiredPosition }) {
+            return currentPaths
         }
 
-        return (currentPaths.minOfOrNull { it.size } ?: Int.MAX_VALUE) - 1
+        val newPaths = currentPaths.flatMap { path -> takeAllSteps(path, visited) }
+        val prunedPaths = newPaths.distinctBy { it.last() }
+        return explorePaths(prunedPaths, visited)
     }
 
     private fun takeAllSteps(
-        desiredPoint: Point,
         path: List<Point>,
-        map: Grid<Int>,
-        ptToShortestRoute: MutableMap<Point, Int>
+        visited: MutableSet<Point>
     ): List<List<Point>> {
         val currentPoint = path.last()
-        if (currentPoint == desiredPoint) {
+        if (currentPoint == desiredPosition) {
             return listOf(path)
         }
 
-        val currentElevation = map.getValue(currentPoint)
-
-        val validNeighbours = map.neighbours(currentPoint).filter { newPoint ->
-            val newElevation = map.getValue(newPoint)
-            newElevation <= currentElevation + 1
-                    && (ptToShortestRoute[newPoint] ?: Int.MAX_VALUE) >= path.size + 1
-        }
-
-        validNeighbours.forEach {
-            ptToShortestRoute[it] = path.size + 1
-        }
-
+        val validNeighbours = cachedNeighbours.getValue(currentPoint).filterNot(visited::contains)
+        visited.addAll(validNeighbours)
         return validNeighbours.map { path + it }
     }
 }
