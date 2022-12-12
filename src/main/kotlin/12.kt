@@ -13,61 +13,55 @@ class Day12 : Solver {
         }
     }
 
-    // Pre-cache valid neighbours up front
-    private val cachedNeighbours = grid.map.keys.associateWith { pt ->
-        grid.neighbours(pt).filter { neighbour ->
-            val newElevation = grid.getValue(neighbour)
-            newElevation <= grid.getValue(pt) + 1
-        }
-    }
+    override fun partA() = getMinimumSteps(myPosition, ::canStepForwards) { it == desiredPosition }
 
-    override fun partA() = getMinimumSteps(myPosition)
+    override fun partB() = getMinimumSteps(desiredPosition, ::canStepBackwards) { grid.getValue(it) == 0 }
 
-    override fun partB() = getPotentialStartingPoints()
-        .minOf(::getMinimumSteps)
+    private fun canStepForwards(myElevation: Int, neighbourElevation: Int) = neighbourElevation <= myElevation + 1
 
-    /**
-     * Eliminate any point whose only neighbours are either others of elevation 0, or impossible to move to
-     */
-    private fun getPotentialStartingPoints() = grid.map.entries
-        .filter { it.value == 0 }
-        .map { it.key }
-        .filterNot { pt ->
-            cachedNeighbours.getValue(pt).all { neighbour ->
-                grid.getValue(neighbour) == 0
-            }
-        }
+    private fun canStepBackwards(myElevation: Int, neighbourElevation: Int) = neighbourElevation >= myElevation - 1
 
-    private fun getMinimumSteps(startingPosition: Point): Int {
+    private fun getMinimumSteps(
+        startingPosition: Point,
+        stepValidator: (Int, Int) -> Boolean,
+        stopCondition: (Point) -> Boolean
+    ): Int {
         val startingPaths = listOf(listOf(startingPosition))
-        val result = explorePaths(startingPaths, mutableSetOf(startingPosition))
+        val result = explorePaths(startingPaths, setOf(startingPosition), stepValidator, stopCondition)
         return result.minOf { it.size - 1 }
     }
 
     private fun explorePaths(
         currentPaths: List<List<Point>>,
-        visited: MutableSet<Point>
+        visited: Set<Point>,
+        stepValidator: (Int, Int) -> Boolean,
+        stopCondition: (Point) -> Boolean
     ): List<List<Point>> {
-        if (currentPaths.all { it.last() == desiredPosition }) {
+        if (currentPaths.all { stopCondition(it.last()) }) {
             return currentPaths
         }
 
-        val newPaths = currentPaths.flatMap { path -> takeAllSteps(path, visited) }
+        val newPaths = currentPaths.flatMap { path -> takeAllSteps(path, visited, stepValidator, stopCondition) }
         val prunedPaths = newPaths.distinctBy { it.last() }
-        return explorePaths(prunedPaths, visited)
+        val pointsVisited = prunedPaths.map { it.last() }
+        return explorePaths(prunedPaths, visited + pointsVisited, stepValidator, stopCondition)
     }
 
     private fun takeAllSteps(
         path: List<Point>,
-        visited: MutableSet<Point>
+        visited: Set<Point>,
+        stepValidator: (Int, Int) -> Boolean,
+        stopCondition: (Point) -> Boolean
     ): List<List<Point>> {
         val currentPoint = path.last()
-        if (currentPoint == desiredPosition) {
+        if (stopCondition(currentPoint)) {
             return listOf(path)
         }
 
-        val validNeighbours = cachedNeighbours.getValue(currentPoint).filterNot(visited::contains)
-        visited.addAll(validNeighbours)
+        val currentElevation = grid.getValue(currentPoint)
+        val validNeighbours = grid.neighbours(currentPoint).filter { neighbour ->
+            !visited.contains(neighbour) && stepValidator(currentElevation, grid.getValue(neighbour))
+        }
         return validNeighbours.map { path + it }
     }
 }
