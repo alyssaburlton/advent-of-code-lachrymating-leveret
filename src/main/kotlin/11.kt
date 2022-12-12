@@ -1,6 +1,5 @@
 data class Monkey(val items: List<Long>, val itemsInspected: Long, val operation: (Long) -> Long, val test: MonkeyTest)
 data class MonkeyTest(val divisor: Int, val monkeyIfTrue: Int, val monkeyIfFalse: Int)
-data class ThrownItem(val item: Long, val newMonkey: Int)
 
 class Day11 : Solver {
     override val day = 11
@@ -28,13 +27,7 @@ class Day11 : Solver {
 
     private fun doMonkeyTurn(currentMonkeys: List<Monkey>, monkeyIx: Int): List<Monkey> {
         val monkey = currentMonkeys[monkeyIx]
-
-        val thrownItems = monkey.items.map { item ->
-            val newValue = monkey.operation(item)
-            ThrownItem(newValue, monkey.calculateThrow(newValue))
-        }
-
-        val thrownMonkeys = thrownItems.map { it.newMonkey }.distinct()
+        val thrownItems = monkey.items.map { monkey.operation(it) }.groupBy { monkey.calculateThrow(it) }
 
         return currentMonkeys.mapIndexed { newMonkeyIx, newMonkey ->
             if (newMonkeyIx == monkeyIx) {
@@ -42,9 +35,9 @@ class Day11 : Solver {
                     items = emptyList(),
                     itemsInspected = monkey.itemsInspected + monkey.items.size
                 )
-            } else if (thrownMonkeys.contains(newMonkeyIx)) {
+            } else if (thrownItems.containsKey(newMonkeyIx)) {
                 newMonkey.copy(
-                    items = newMonkey.items + thrownItems.filter { it.newMonkey == newMonkeyIx }.map { it.item }
+                    items = newMonkey.items + thrownItems.getValue(newMonkeyIx)
                 )
             } else newMonkey
         }
