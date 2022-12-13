@@ -19,36 +19,30 @@ class Day13 : Solver {
     fun inCorrectOrder(inputPair: List<Any>) = compare(inputPair[0], inputPair[1]) == -1
 
     private fun compare(itemOne: Any?, itemTwo: Any?): Int {
-        if (itemOne == null && itemTwo == null) {
+        if (itemOne == itemTwo) {
             return 0
         }
 
-        if (itemOne == null) {
-            return -1
+        itemOne ?: return -1
+        itemTwo ?: return 1
+
+        return when (itemOne) {
+            is Int -> itemOne.compareInPacket(itemTwo)
+            is List<*> -> itemOne.compareInPacket(itemTwo)
+            else -> throw Error("Unexpected type: $itemOne")
         }
+    }
 
-        if (itemTwo == null) {
-            return 1
-        }
+    private fun Int.compareInPacket(other: Any) =
+        if (other is Int) compareTo(other) else listOf(this).compareInPacket(other)
 
-        if (itemOne is Int && itemTwo is Int) {
-            return itemOne.compareTo(itemTwo)
-        }
+    private fun List<*>.compareInPacket(other: Any): Int {
+        if (other !is List<*>) return compareInPacket(listOf(other))
 
-        if (itemOne is List<*> && itemTwo is List<*>) {
-            val maxSize = max(itemOne.size, itemTwo.size)
-            val first = itemOne.padWith(maxSize, null)
-            val second = itemTwo.padWith(maxSize, null)
-
-            val itemComparisons = first.zip(second).map { compare(it.first, it.second) }.filterNot { it == 0 }
-            return itemComparisons.firstOrNull() ?: 0
-        }
-
-        if (itemOne is Int) {
-            return compare(listOf(itemOne), itemTwo)
-        }
-
-        return compare(itemOne, listOf(itemTwo))
+        val maxSize = max(size, other.size)
+        val first = padWith(maxSize, null)
+        val second = other.padWith(maxSize, null)
+        return first.zip(second).map { compare(it.first, it.second) }.firstOrNull { it != 0 } ?: 0
     }
 
     fun parsePacket(packetString: String) = parsePacket(packetString, 0)
