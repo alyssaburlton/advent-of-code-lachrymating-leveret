@@ -28,3 +28,12 @@ fun List<Int>.product() = reduce(Int::times)
 fun List<Long>.product() = reduce(Long::times)
 
 fun <E> List<E>.replaceAt(index: Int, newValue: E) = subList(0, index) + newValue + subList(index + 1, size)
+
+fun <E> List<E>.padWith(length: Int, value: E): List<E> {
+    if (size > length) {
+        throw Error("Trying to pad to length $length but my size is larger: $size")
+    }
+
+    val diff = length - size
+    return this + List(diff) { value }
+}

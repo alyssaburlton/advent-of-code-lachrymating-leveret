@@ -1,30 +1,22 @@
-import kotlin.math.abs
+import kotlin.math.max
 
 class Day13 : Solver {
     override val day = 13
 
-    private val input = readGroupedList("13")
+    private val input = readGroupedList("13").map { pair -> pair.map(::parsePacket) }
+    private val dividerPackets = listOf("[[2]]", "[[6]]").map(::parsePacket)
 
-    override fun partA(): Any {
-        return input.mapIndexed { index, strings ->
-            if (inCorrectOrder(strings)) index + 1 else 0
-        }.sum()
-    }
+    override fun partA() = input.mapIndexed { index, packet ->
+        if (inCorrectOrder(packet)) index + 1 else 0
+    }.sum()
 
     override fun partB(): Any {
-        val newInput = (input.flatten() + "[[2]]" + "[[6]]").map(::parseItems)
+        val newInput = input.flatten() + dividerPackets
         val sorted = newInput.sortedWith(::compare)
-        println(sorted)
-
-        return (1 + sorted.indexOf(listOf(listOf(2)))) * (1 + sorted.indexOf(listOf(listOf(6))))
+        return dividerPackets.map { sorted.indexOf(it) + 1 }.product()
     }
 
-    fun inCorrectOrder(inputPair: List<String>): Boolean {
-        val first = parseItems(inputPair[0])
-        val second = parseItems(inputPair[1])
-
-        return compare(first, second) == -1
-    }
+    fun inCorrectOrder(inputPair: List<Any>) = compare(inputPair[0], inputPair[1]) == -1
 
     private fun compare(itemOne: Any?, itemTwo: Any?): Int {
         if (itemOne == null && itemTwo == null) {
@@ -39,21 +31,14 @@ class Day13 : Solver {
             return 1
         }
 
-        // println("Compare $itemOne vs $itemTwo")
         if (itemOne is Int && itemTwo is Int) {
             return itemOne.compareTo(itemTwo)
         }
 
         if (itemOne is List<*> && itemTwo is List<*>) {
-            val sizeDiff = itemOne.size - itemTwo.size
-            val padding = List(abs(sizeDiff)) { null }
-
-            val first = if (sizeDiff < 0) itemOne + padding else itemOne
-            val second = if (sizeDiff > 0) itemTwo + padding else itemTwo
-
-            if (first.size != second.size) {
-                throw Error("I've screwed up padding")
-            }
+            val maxSize = max(itemOne.size, itemTwo.size)
+            val first = itemOne.padWith(maxSize, null)
+            val second = itemTwo.padWith(maxSize, null)
 
             val itemComparisons = first.zip(second).map { compare(it.first, it.second) }.filterNot { it == 0 }
             return itemComparisons.firstOrNull() ?: 0
@@ -66,50 +51,44 @@ class Day13 : Solver {
         return compare(itemOne, listOf(itemTwo))
     }
 
-    fun parseItems(packetString: String): Any {
-        println("Parsing $packetString")
-        return parseItems(packetString, 0)
-    }
+    fun parsePacket(packetString: String) = parsePacket(packetString, 0)
 
-    private fun parseItems(packetString: String, nesting: Int): Any {
-        // println("Parsing $packetString")
+    private fun parsePacket(packetString: String, nesting: Int): Any {
+        if (packetString.isEmpty()) {
+            return emptyList<Any>()
+        }
+
         val intValue = packetString.toIntOrNull()
         if (intValue != null) {
-            // println("Integer found")
             return intValue
         }
 
-        val topLevelCommas = mutableListOf<Int>()
-        var currentNesting = 0
-        packetString.forEachIndexed { ix, character ->
-            if (character == '[') {
-                currentNesting += 1
-            } else if (character == ']') {
-                currentNesting -= 1
-            } else if (character == ',' && currentNesting == 0) {
-                topLevelCommas.add(ix)
-            }
-        }
-
+        val topLevelCommas = findTopLevelCommas(packetString)
         if (topLevelCommas.isNotEmpty()) {
-            // println("Splitting by commas")
             return (topLevelCommas + packetString.length).mapIndexed { commaNumber, commaIx ->
                 val previousCommaIx = topLevelCommas.getOrNull(commaNumber - 1) ?: -1
-                parseItems(packetString.substring(previousCommaIx + 1, commaIx))
+                parsePacket(packetString.substring(previousCommaIx + 1, commaIx))
             }
         }
 
-        // println("Stripping outer brackets")
-        val result = if (packetString == "[]") {
-            emptyList<Any>()
-        } else {
-            val substring = packetString.substring(1, packetString.length - 1)
-            parseItems(substring, nesting + 1)
-        }
+        val substring = packetString.substring(1, packetString.length - 1)
+        val result = parsePacket(substring, nesting + 1)
 
-        // println("Got $result, nesting = $nesting")
         return if (nesting > 0 && result is Int) listOf(listOf(result)) else if (nesting > 0 || result is Int) listOf(
             result
         ) else result
     }
+
+    private fun findTopLevelCommas(str: String) =
+        str.foldIndexed(Pair(emptyList<Int>(), 0)) { ix, (commaIndices, nesting), character ->
+            if (character == '[') {
+                commaIndices to nesting + 1
+            } else if (character == ']') {
+                commaIndices to nesting - 1
+            } else if (character == ',' && nesting == 0) {
+                (commaIndices + ix) to 0
+            } else {
+                commaIndices to nesting
+            }
+        }.first
 }
