@@ -34,7 +34,7 @@ class Day14 : Solver {
         isRockPoint: (Point) -> Boolean,
         point: Point = dropPoint
     ): Point? {
-        if (sandPoints.containsPoint(dropPoint)) {
+        if (sandPoints.containsKey(0)) {
             return null
         }
 
@@ -53,9 +53,6 @@ class Day14 : Solver {
             getNextMove(sandPoints, yMax, isRockPoint, newPoint)
         }
     }
-
-    private fun Map<Int, Set<Point>>.containsPoint(point: Point) =
-        getOrDefault(point.y, emptySet()).contains(point)
 
     private fun getRockPoints(): Set<Point> = input.flatMap { inputLine ->
         val pointPairs = inputLine.split(" -> ").map(::parsePoint).windowed(2)
