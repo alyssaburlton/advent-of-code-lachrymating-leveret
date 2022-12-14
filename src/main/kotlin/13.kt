@@ -18,7 +18,7 @@ class Day13 : Solver {
 
     fun inCorrectOrder(inputPair: List<Any>) = compare(inputPair[0], inputPair[1]) == -1
 
-    private fun compare(itemOne: Any?, itemTwo: Any?): Int {
+    fun compare(itemOne: Any?, itemTwo: Any?): Int {
         if (itemOne == itemTwo) {
             return 0
         }
