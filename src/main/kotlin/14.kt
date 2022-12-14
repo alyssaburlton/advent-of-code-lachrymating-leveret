@@ -41,8 +41,10 @@ class Day14 : Solver {
         val preferredPoints =
             listOf(Point(point.x, point.y + 1), Point(point.x - 1, point.y + 1), Point(point.x + 1, point.y + 1))
 
+        val relevantSandPoints = sandPoints.getOrDefault(point.y + 1, emptySet())
+
         val newPoint =
-            preferredPoints.firstOrNull { pt -> !isRockPoint(pt) && !sandPoints.containsPoint(pt) } ?: point
+            preferredPoints.firstOrNull { pt -> !isRockPoint(pt) && !relevantSandPoints.contains(pt) } ?: point
         return if (newPoint.y > yMax) {
             null
         } else if (newPoint == point) {
