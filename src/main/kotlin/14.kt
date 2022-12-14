@@ -12,36 +12,37 @@ class Day14 : Solver {
         val rockPoints = getRockPoints()
         val lowestRock = rockPoints.maxOf { it.y }
         val yMax = if (withFloor) lowestRock + 2 else lowestRock
-        val isRockPoint = { pt: Point -> rockPoints.contains(pt) || (withFloor && pt.y == yMax) }
+        val isRockPoint = { pt: Point -> (withFloor && pt.y == yMax) || rockPoints.contains(pt) }
 
         val result = dropSandRecursive(yMax, isRockPoint)
-        return result.size
+        return result.values.flatten().size
     }
 
     private tailrec fun dropSandRecursive(
         yMax: Int,
         isRockPoint: (Point) -> Boolean,
-        sandPoints: Set<Point> = emptySet()
-    ): Set<Point> {
+        sandPoints: Map<Int, Set<Point>> = emptyMap()
+    ): Map<Int, Set<Point>> {
         val newPoint = getNextMove(sandPoints, yMax, isRockPoint) ?: return sandPoints
-        return dropSandRecursive(yMax, isRockPoint, sandPoints + newPoint)
+        val otherPoints = sandPoints.getOrDefault(newPoint.y, emptySet()) + newPoint
+        return dropSandRecursive(yMax, isRockPoint, sandPoints.plus(newPoint.y to otherPoints))
     }
 
     private fun getNextMove(
-        sandPoints: Set<Point> = emptySet(),
+        sandPoints: Map<Int, Set<Point>>,
         yMax: Int,
         isRockPoint: (Point) -> Boolean,
         point: Point = dropPoint
     ): Point? {
-        if (sandPoints.contains(dropPoint)) {
+        if (sandPoints.containsPoint(dropPoint)) {
             return null
         }
 
         val preferredPoints =
-            listOf(Point(point.x, point.y + 1), Point(point.x - 1, point.y + 1), Point(point.x + 1, point.y + 1), point)
+            listOf(Point(point.x, point.y + 1), Point(point.x - 1, point.y + 1), Point(point.x + 1, point.y + 1))
 
         val newPoint =
-            preferredPoints.first { pt -> !isRockPoint(pt) && !sandPoints.contains(pt) }
+            preferredPoints.firstOrNull { pt -> !isRockPoint(pt) && !sandPoints.containsPoint(pt) } ?: point
         return if (newPoint.y > yMax) {
             null
         } else if (newPoint == point) {
@@ -50,6 +51,9 @@ class Day14 : Solver {
             getNextMove(sandPoints, yMax, isRockPoint, newPoint)
         }
     }
+
+    private fun Map<Int, Set<Point>>.containsPoint(point: Point) =
+        getOrDefault(point.y, emptySet()).contains(point)
 
     private fun getRockPoints(): Set<Point> = input.flatMap { inputLine ->
         val pointPairs = inputLine.split(" -> ").map(::parsePoint).windowed(2)
