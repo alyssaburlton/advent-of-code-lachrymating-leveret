@@ -5,45 +5,53 @@ class Day14 : Solver {
     private val dropPoint = Point(500, 0)
 
     override fun partA(): Any {
-        val grid = parseGrid()
+        val grid = parseGrid(false)
+        val yMax = grid.keys.maxOf { it.y }
 
-        var (stillMoving, newGrid) = dropSand(grid)
+        var stillMoving = dropSand(grid, yMax)
         while (stillMoving) {
-            val (newStopped, andNewGrid) = dropSand(newGrid)
-            stillMoving = newStopped
-            newGrid = andNewGrid
-
-//            newGrid.print()
-//            println()
-//            println()
+            stillMoving = dropSand(grid, yMax)
         }
 
-        return newGrid.map.values.count { it == "o" }
+        return grid.values.count { it == "o" }
     }
 
-    private fun dropSand(grid: Grid<String>): Pair<Boolean, Grid<String>> {
+    override fun partB(): Any {
+        val grid = parseGrid(true)
+        val yMax = grid.keys.maxOf { it.y }
+
+        var stillMoving = dropSand(grid, yMax)
+        while (stillMoving) {
+            stillMoving = dropSand(grid, yMax)
+        }
+
+        return grid.values.count { it == "o" } + 1
+    }
+
+    private fun dropSand(grid: MutableMap<Point, String>, yMax: Int): Boolean {
         var previousPt: Point = dropPoint
         var pt: Point = getNextMove(grid, dropPoint)
 
-        while (pt != previousPt && pt.y < grid.yMax) {
+        while (pt != previousPt && pt.y < yMax) {
             previousPt = pt
             pt = getNextMove(grid, pt)
         }
 
-        if (pt == previousPt && pt != dropPoint) {
-            return true to grid.setValue(previousPt, "o")
-        } else {
-            return false to grid
+        val landedSomewhere = pt == previousPt && pt != dropPoint
+        if (landedSomewhere) {
+            grid[pt] = "o"
         }
+
+        return landedSomewhere
     }
 
-    private fun getNextMove(grid: Grid<String>, point: Point): Point {
+    private fun getNextMove(grid: Map<Point, String>, point: Point): Point {
         val preferredPoints =
             listOf(Point(point.x, point.y + 1), Point(point.x - 1, point.y + 1), Point(point.x + 1, point.y + 1), point)
-        return preferredPoints.find { grid.map.getOrDefault(it, ".") == "." }!!
+        return preferredPoints.find { grid.getOrDefault(it, ".") == "." }!!
     }
 
-    private fun parseGrid(): Grid<String> {
+    private fun parseGrid(withFloor: Boolean): MutableMap<Point, String> {
         val rockPoints: Set<Point> = input.flatMap { inputLine ->
             val pointPairs = inputLine.split(" -> ").map(::parsePoint).windowed(2)
             pointPairs.flatMap { getLine(it[0], it[1]) }
@@ -53,15 +61,20 @@ class Day14 : Solver {
         val xMax = rockPoints.maxOf { it.x }
         val yMax = rockPoints.maxOf { it.y }
 
+        val xStart = if (withFloor) xMin - 200 else xMin
+        val xEnd = if (withFloor) xMax + 200 else xMax
+        val yEnd = if (withFloor) yMax + 2 else yMax
+
         val map = mutableMapOf<Point, String>()
 
-        for (x in (xMin..xMax)) {
-            for (y in 0..yMax) {
-                map[Point(x, y)] = if (rockPoints.contains(Point(x, y))) "#" else "."
+        for (x in (xStart..xEnd)) {
+            for (y in 0..yEnd) {
+                map[Point(x, y)] =
+                    if (rockPoints.contains(Point(x, y))) "#" else if (withFloor && y == yEnd) "#" else "."
             }
         }
 
-        return Grid(map)
+        return map
     }
 
     private fun parsePoint(pointStr: String): Point {
@@ -77,73 +90,4 @@ class Day14 : Solver {
         } else {
             (minOf(pointA.y, pointB.y)..maxOf(pointA.y, pointB.y)).map { Point(pointA.x, it) }
         }
-
-    override fun partB(): Any {
-        val grid = parseGridB()
-
-        var (stillMoving, newGrid) = dropSandB(grid)
-        while (stillMoving) {
-            val (newStopped, andNewGrid) = dropSandB(newGrid)
-            stillMoving = newStopped
-            newGrid = andNewGrid
-
-//            newGrid.print()
-//            println()
-//            println()
-        }
-
-        return newGrid.map.values.count { it == "o" } + 1
-    }
-
-    private fun parseGridB(): Grid<String> {
-        val rockPoints: Set<Point> = input.flatMap { inputLine ->
-            val pointPairs = inputLine.split(" -> ").map(::parsePoint).windowed(2)
-            pointPairs.flatMap { getLine(it[0], it[1]) }
-        }.toSet()
-
-        val xMin = rockPoints.minOf { it.x }
-        val xMax = rockPoints.maxOf { it.x }
-        val yMax = rockPoints.maxOf { it.y } + 2
-
-        val map = mutableMapOf<Point, String>()
-
-        for (x in (xMin..xMax)) {
-            for (y in 0..yMax) {
-                map[Point(x, y)] = if (rockPoints.contains(Point(x, y))) "#" else if (y == yMax) "#" else "."
-            }
-        }
-
-        return Grid(map)
-    }
-
-    private fun dropSandB(grid: Grid<String>): Pair<Boolean, Grid<String>> {
-        var previousPt: Point = dropPoint
-        var pt: Point = getNextMoveB(grid, dropPoint)
-
-        while (pt != previousPt && pt.y < grid.yMax) {
-            previousPt = pt
-            pt = getNextMoveB(grid, pt)
-        }
-
-        if (pt == previousPt && pt != dropPoint) {
-            if (!(grid.xMin..grid.xMax).contains(pt.x)) {
-                val newPts = (grid.yMin..grid.yMax).map { Point(pt.x, it) }
-                val intermediate = grid.setValues(newPts, ".")
-                return true to intermediate.setValue(Point(pt.x, grid.yMax), "#").setValue(pt, "o")
-            }
-            return true to grid.setValue(previousPt, "o")
-        } else {
-            return false to grid
-        }
-    }
-
-    private fun getNextMoveB(grid: Grid<String>, point: Point): Point {
-        val preferredPoints =
-            listOf(Point(point.x, point.y + 1), Point(point.x - 1, point.y + 1), Point(point.x + 1, point.y + 1), point)
-        return preferredPoints.find {
-            val result = grid.map[it]
-            val terrain = result ?: if (it.y == grid.yMax) "#" else "."
-            terrain == "."
-        }!!
-    }
 }
