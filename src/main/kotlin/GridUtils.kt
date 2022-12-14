@@ -54,6 +54,18 @@ class Grid<T>(val map: Map<Point, T>) {
 
     fun getValue(pt: Point) = map.getValue(pt)
 
+    fun setValue(pt: Point, value: T): Grid<T> {
+        val newMap = map.toMutableMap()
+        newMap[pt] = value
+        return Grid(newMap)
+    }
+
+    fun setValues(pts: List<Point>, value: T): Grid<T> {
+        val newMap = map.toMutableMap()
+        pts.forEach { pt -> newMap[pt] = value }
+        return Grid(newMap)
+    }
+
     fun prettyString() = (yMin..yMax).joinToString("\n") { y ->
         (xMin..xMax).joinToString("") { x -> map.getValue(Point(x, y)).toString() }
     }
