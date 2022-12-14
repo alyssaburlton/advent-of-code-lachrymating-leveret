@@ -4,8 +4,12 @@ class Day14 : Solver {
     private val input = readStringList("14")
     private val dropPoint = Point(500, 0)
 
-    override fun partA(): Any {
-        val grid = parseGrid(false)
+    override fun partA() = dropAllSand(false)
+
+    override fun partB() = dropAllSand(true)
+
+    private fun dropAllSand(withFloor: Boolean): Int {
+        val grid = parseGrid(withFloor)
         val yMax = grid.keys.maxOf { it.y }
 
         var stillMoving = dropSand(grid, yMax)
@@ -16,39 +20,31 @@ class Day14 : Solver {
         return grid.values.count { it == "o" }
     }
 
-    override fun partB(): Any {
-        val grid = parseGrid(true)
-        val yMax = grid.keys.maxOf { it.y }
-
-        var stillMoving = dropSand(grid, yMax)
-        while (stillMoving) {
-            stillMoving = dropSand(grid, yMax)
-        }
-
-        return grid.values.count { it == "o" } + 1
-    }
-
     private fun dropSand(grid: MutableMap<Point, String>, yMax: Int): Boolean {
-        var previousPt: Point = dropPoint
-        var pt: Point = getNextMove(grid, dropPoint)
-
-        while (pt != previousPt && pt.y < yMax) {
-            previousPt = pt
-            pt = getNextMove(grid, pt)
+        val newPoint = getNextMove(grid, yMax)
+        if (newPoint != null) {
+            grid[newPoint] = "o"
         }
 
-        val landedSomewhere = pt == previousPt && pt != dropPoint
-        if (landedSomewhere) {
-            grid[pt] = "o"
-        }
-
-        return landedSomewhere
+        return newPoint != null
     }
 
-    private fun getNextMove(grid: Map<Point, String>, point: Point): Point {
+    private fun getNextMove(grid: Map<Point, String>, yMax: Int, point: Point = dropPoint): Point? {
+        if (grid[dropPoint] == "o") {
+            return null
+        }
+
         val preferredPoints =
             listOf(Point(point.x, point.y + 1), Point(point.x - 1, point.y + 1), Point(point.x + 1, point.y + 1), point)
-        return preferredPoints.find { grid.getOrDefault(it, ".") == "." }!!
+
+        val newPoint = preferredPoints.first { grid.getOrDefault(it, ".") == "." }
+        return if (newPoint.y > yMax) {
+            null
+        } else if (newPoint == point) {
+            point
+        } else {
+            getNextMove(grid, yMax, newPoint)
+        }
     }
 
     private fun parseGrid(withFloor: Boolean): MutableMap<Point, String> {
@@ -83,9 +79,7 @@ class Day14 : Solver {
     }
 
     private fun getLine(pointA: Point, pointB: Point): List<Point> =
-        if (pointA.x != pointB.x && pointA.y != pointB.y) {
-            throw Error("Points differ in both dirs: $pointA, $pointB")
-        } else if (pointA.x != pointB.x) {
+        if (pointA.x != pointB.x) {
             (minOf(pointA.x, pointB.x)..maxOf(pointA.x, pointB.x)).map { Point(it, pointA.y) }
         } else {
             (minOf(pointA.y, pointB.y)..maxOf(pointA.y, pointB.y)).map { Point(pointA.x, it) }
