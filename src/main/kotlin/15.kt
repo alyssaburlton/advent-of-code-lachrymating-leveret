@@ -14,9 +14,9 @@ class Day15 : Solver {
     private val input = readStringList(inputParams.filename)
     private val sensors = input.map(::parseInputLine)
 
-    override fun partA() = getWhereBeaconCannotBe(inputParams.yCoordPartA)
+    override fun partA() = getWhereBeaconCannotBe()
 
-    override fun partB() = findBeacon(inputParams.maxX, inputParams.maxY)
+    override fun partB() = findBeacon()
 
     private fun parseInputLine(line: String): Sensor {
         val match =
@@ -25,13 +25,13 @@ class Day15 : Solver {
         return Sensor(Point(x1, y1), Point(x2, y2))
     }
 
-    private fun getWhereBeaconCannotBe(y: Int): Int {
-        val sensorRanges = sensors.map { sensor ->
-            val xRadius = sensor.range - abs(sensor.sensorPoint.y - y)
-            sensor.sensorPoint.x - xRadius to sensor.sensorPoint.x + xRadius
-        }.sortedBy { it.first }
-
-        val (total, _) = sensorRanges.fold(Pair(0, Int.MIN_VALUE)) { (pointsSoFar, currentMax), (xMin, xMax) ->
+    private fun getWhereBeaconCannotBe(): Int {
+        val (total, _) = getSortedSensorRangesForRow().fold(
+            Pair(
+                0,
+                Int.MIN_VALUE
+            )
+        ) { (pointsSoFar, currentMax), (xMin, xMax) ->
             val newMax = maxOf(xMax, currentMax)
             if (xMin > currentMax) {
                 // New disjoint set, add everything
@@ -45,36 +45,39 @@ class Day15 : Solver {
             }
         }
 
-        val beacons = sensors.map(Sensor::beaconPoint).filter { it.y == y }.map(Point::x)
-        return total - beacons.size
+        return total - getBeaconsForRow().size
     }
 
+    private fun getBeaconsForRow() =
+        sensors.map(Sensor::beaconPoint).filter { it.y == inputParams.yCoordPartA }.map(Point::x)
 
-    private fun findBeacon(maxX: Int, maxY: Int): Long {
-        val result = sensors.firstNotNullOf { sensorToCheck ->
-            val x = sensorToCheck.sensorPoint.x
-            val y = sensorToCheck.sensorPoint.y
+    private fun getSortedSensorRangesForRow() = sensors.map { sensor ->
+        val xRadius = sensor.range - abs(sensor.sensorPoint.y - inputParams.yCoordPartA)
+        sensor.sensorPoint.x - xRadius to sensor.sensorPoint.x + xRadius
+    }.sortedBy { it.first }
 
-            val borderDistance = sensorToCheck.range + 1
-            val offsets = (0..borderDistance) zip (borderDistance downTo 0)
+    private fun findBeacon() = sensors.firstNotNullOf(::findValidBorderPoint).let(::tuningFrequency)
 
-            offsets.flatMap { (xOffset, yOffset) ->
-                setOf(
-                    Point(x + xOffset, y + yOffset),
-                    Point(x + xOffset, y - yOffset),
-                    Point(x - xOffset, y + yOffset),
-                    Point(x - xOffset, y - yOffset)
-                ).filter { borderPt ->
-                    borderPt.x in 0..maxX && borderPt.y in 0..maxY && sensors.none { sensor ->
-                        sensor.pointInRange(
-                            borderPt
-                        )
-                    }
-                }
-            }.firstOrNull()
+    private fun findValidBorderPoint(sensor: Sensor) =
+        sensor.getBorderPoints().firstOrNull(::borderPointCouldHaveBeacon)
+
+    private fun borderPointCouldHaveBeacon(borderPt: Point) =
+        borderPt.isWithinBoundary() && sensors.none { sensor -> sensor.pointInRange(borderPt) }
+
+    private fun Point.isWithinBoundary() = x in 0..inputParams.maxX && y in 0..inputParams.maxY
+    private fun tuningFrequency(point: Point) = point.x.toLong() * 4000000 + point.y
+
+    private fun Sensor.getBorderPoints(): List<Point> {
+        val (x, y) = sensorPoint
+        val offsets = (0..range + 1) zip (range + 1 downTo 0)
+        return offsets.flatMap { (xOffset, yOffset) ->
+            setOf(
+                Point(x + xOffset, y + yOffset),
+                Point(x + xOffset, y - yOffset),
+                Point(x - xOffset, y + yOffset),
+                Point(x - xOffset, y - yOffset)
+            )
         }
-
-        return result.x.toLong() * 4000000 + result.y
     }
 
     private fun Sensor.pointInRange(pt: Point) = sensorPoint.stepDistance(pt) <= range
