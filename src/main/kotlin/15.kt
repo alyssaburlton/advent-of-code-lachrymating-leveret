@@ -26,27 +26,22 @@ class Day15 : Solver {
     }
 
     private fun getWhereBeaconCannotBe(): Int {
-        val (total, _) = getSortedSensorRangesForRow().fold(
-            Pair(
-                0,
-                Int.MIN_VALUE
-            )
-        ) { (pointsSoFar, currentMax), (xMin, xMax) ->
-            val newMax = maxOf(xMax, currentMax)
-            if (xMin > currentMax) {
-                // New disjoint set, add everything
-                pointsSoFar + (xMax - xMin + 1) to newMax
-            } else if (xMax <= currentMax) {
-                // Fully contained, do nothing
-                pointsSoFar to currentMax
-            } else {
-                // Partial overlap, add from currentMax -> newMax
-                pointsSoFar + xMax - currentMax + 1 to newMax
-            }
+        val (_, total) = getSortedSensorRangesForRow().fold(
+            Pair(Int.MIN_VALUE, 0)
+        ) { (currentMax, pointsSoFar), (xMin, xMax) ->
+            maxOf(xMax, currentMax) to pointsSoFar + countNewPoints(currentMax, xMin, xMax)
         }
 
         return total - getBeaconsForRow().size
     }
+
+    private fun countNewPoints(currentMax: Int, xMin: Int, xMax: Int) =
+        if (xMin > currentMax)
+            xMax - xMin + 1
+        else if (xMax <= currentMax)
+            0
+        else
+            xMax - currentMax + 1
 
     private fun getBeaconsForRow() =
         sensors.map(Sensor::beaconPoint).filter { it.y == inputParams.yCoordPartA }.map(Point::x)
