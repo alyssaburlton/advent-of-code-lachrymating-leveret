@@ -1,17 +1,22 @@
 import kotlin.math.abs
 
+private data class InputParameters(val filename: String, val yCoordPartA: Int, val maxX: Int, val maxY: Int)
+
 class Day15 : Solver {
     override val day = 15
 
-    private val input = readStringList("15")
+    // private val inputParams = InputParameters("15e", 10, 20, 20) // Example
+    private val inputParams = InputParameters("15", 2000000, 4000000, 4000000) // real
+
+    private val input = readStringList(inputParams.filename)
     private val pts = input.map(::parseInputLine)
 
     override fun partA(): Any {
-        return getWhereBeaconCannotBe(10).size - 1
+        return getWhereBeaconCannotBe(inputParams.yCoordPartA).size - 1
     }
 
     override fun partB(): Any {
-        return findBeacon(0, 4000000, 0, 4000000)
+        return findBeacon(inputParams.maxX, inputParams.maxY)
     }
 
     private fun parseInputLine(line: String): Pair<Point, Point> {
@@ -31,10 +36,10 @@ class Day15 : Solver {
         }.distinct()
     }
 
-    private fun findBeacon(minX: Int, maxX: Int, minY: Int, maxY: Int): Long {
+    private fun findBeacon(maxX: Int, maxY: Int): Long {
         val possiblePoints = pts.flatMap { (sensorPt, beaconPt) ->
             val dist = sensorPt.stepDistance(beaconPt) + 1
-            println(dist)
+            // println(dist)
             val xRange = (0..dist)
             val yRange = (dist downTo 0)
 
@@ -48,7 +53,7 @@ class Day15 : Solver {
                     Point(x + xOffset, y - yOffset),
                     Point(x - xOffset, y + yOffset),
                     Point(x - xOffset, y - yOffset)
-                ).filter { it.x in minX..maxX && it.y in minY..maxY }
+                ).filter { it.x in 0..maxX && it.y in 0..maxY }
             }.toSet()
         }.toSet()
 
