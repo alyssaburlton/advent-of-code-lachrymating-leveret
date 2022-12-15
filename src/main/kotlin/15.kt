@@ -26,8 +26,6 @@ class Day15 : Solver {
     }
 
     private fun getWhereBeaconCannotBe(y: Int): Int {
-        val beacons = sensors.map(Sensor::beaconPoint).filter { it.y == y }.map { it.x }
-
         val sensorRanges = sensors.map { sensor ->
             val xRadius = sensor.range - abs(sensor.sensorPoint.y - y)
             sensor.sensorPoint.x - xRadius to sensor.sensorPoint.x + xRadius
@@ -36,39 +34,44 @@ class Day15 : Solver {
         val (total, _) = sensorRanges.fold(Pair(0, Int.MIN_VALUE)) { (pointsSoFar, currentMax), (xMin, xMax) ->
             val newMax = maxOf(xMax, currentMax)
             if (xMin > currentMax) {
+                // New disjoint set, add everything
                 pointsSoFar + (xMax - xMin + 1) to newMax
             } else if (xMax <= currentMax) {
                 // Fully contained, do nothing
                 pointsSoFar to currentMax
             } else {
+                // Partial overlap, add from currentMax -> newMax
                 pointsSoFar + xMax - currentMax + 1 to newMax
             }
         }
 
+        val beacons = sensors.map(Sensor::beaconPoint).filter { it.y == y }.map(Point::x)
         return total - beacons.size
     }
 
 
     private fun findBeacon(maxX: Int, maxY: Int): Long {
         val result = sensors.firstNotNullOf { sensorToCheck ->
+            val x = sensorToCheck.sensorPoint.x
+            val y = sensorToCheck.sensorPoint.y
+
             val borderDistance = sensorToCheck.range + 1
             val offsets = (0..borderDistance) zip (borderDistance downTo 0)
 
-            val borderPts = offsets.flatMap { (xOffset, yOffset) ->
-                val x = sensorToCheck.sensorPoint.x
-                val y = sensorToCheck.sensorPoint.y
-
+            offsets.flatMap { (xOffset, yOffset) ->
                 setOf(
                     Point(x + xOffset, y + yOffset),
                     Point(x + xOffset, y - yOffset),
                     Point(x - xOffset, y + yOffset),
                     Point(x - xOffset, y - yOffset)
-                ).filter { it.x in 0..maxX && it.y in 0..maxY }
-            }
-
-            borderPts.firstOrNull { pt ->
-                sensors.none { sensor -> sensor.pointInRange(pt) }
-            }
+                ).filter { borderPt ->
+                    borderPt.x in 0..maxX && borderPt.y in 0..maxY && sensors.none { sensor ->
+                        sensor.pointInRange(
+                            borderPt
+                        )
+                    }
+                }
+            }.firstOrNull()
         }
 
         return result.x.toLong() * 4000000 + result.y
