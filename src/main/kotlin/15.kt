@@ -5,14 +5,14 @@ private data class InputParameters(val filename: String, val yCoordPartA: Int, v
 class Day15 : Solver {
     override val day = 15
 
-    // private val inputParams = InputParameters("15e", 10, 20, 20) // Example
-    private val inputParams = InputParameters("15", 2000000, 4000000, 4000000) // real
+    private val inputParams = InputParameters("15e", 10, 20, 20) // Example
+    // private val inputParams = InputParameters("15", 2000000, 4000000, 4000000) // real
 
     private val input = readStringList(inputParams.filename)
     private val pts = input.map(::parseInputLine)
 
     override fun partA(): Any {
-        return getWhereBeaconCannotBe(inputParams.yCoordPartA).size - 1
+        return (getWhereBeaconCannotBe(inputParams.yCoordPartA) - pts.map { it.second }).size
     }
 
     override fun partB(): Any {
