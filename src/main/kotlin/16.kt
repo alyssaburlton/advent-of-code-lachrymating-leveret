@@ -7,6 +7,8 @@ data class VolcanoState(
 
 data class VolcanoStateHash(val personStates: Set<Valve?>, val released: Set<Pair<Int, Valve>>)
 
+private const val NAIVE_SEARCH_MAX_TO_KEEP = 1000
+
 class Day16 : Solver {
     override val day = 16
 
@@ -27,6 +29,9 @@ class Day16 : Solver {
     private fun canReleaseValve(move: VolcanoState, valve: Valve) =
         valve.flowRate > 0 && !move.releasedValves.any { it.second == valve }
 
+    private fun releasableValves(state: VolcanoState) =
+        releasableValves.filter { canReleaseValve(state, it) }
+
     private fun countTotalReleased(move: VolcanoState) = move.releasedValves.sumOf {
         it.first * it.second.flowRate
     }
@@ -36,24 +41,17 @@ class Day16 : Solver {
 
     private fun getTheoreticalMax(timeRemaining: Int, currentState: VolcanoState): Int {
         val currentScore = countTotalReleased(currentState)
-        val canReleaseNow =
-            canReleaseValve(
-                currentState,
-                currentState.myValve
-            ) || (currentState.elephantValve != null && canReleaseValve(
-                currentState,
-                currentState.elephantValve
-            ))
+        val currentValves = listOfNotNull(currentState.myValve, currentState.elephantValve)
+        val canReleaseNow = currentValves.any { canReleaseValve(currentState, it) }
 
         val firstReleaseTime = if (canReleaseNow) timeRemaining else timeRemaining - 1
         val optimisticReleaseTimes = (firstReleaseTime downTo 0 step 2)
 
-        val zipped = optimisticReleaseTimes zip releasableValves(currentState).sortedByDescending { it.flowRate }
-        return currentScore + zipped.sumOf { it.first * it.second.flowRate }
+        return currentScore + releasableValves(currentState)
+            .sortedByDescending { it.flowRate }
+            .zip(optimisticReleaseTimes)
+            .sumOf { it.first.flowRate * it.second }
     }
-
-    private fun releasableValves(move: VolcanoState) =
-        (releasableValves - move.releasedValves.map { it.second })
 
     private fun runSimulation(startingState: VolcanoState, startingTime: Int) =
         exploreRecursively(
@@ -89,7 +87,7 @@ class Day16 : Solver {
 
     private fun findNaiveMaximum(initialState: VolcanoState, startingMoves: Int) =
         exploreRecursively(listOf(initialState), 0, startingMoves) { moves, _, _ ->
-            moves.sortedByDescending(::countTotalReleased).subList(0, minOf(1000, moves.size))
+            moves.sortedByDescending(::countTotalReleased).take(NAIVE_SEARCH_MAX_TO_KEEP)
         }
 
     private fun takeMoves(timeRemaining: Int, currentMoves: List<VolcanoState>) =
