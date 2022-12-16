@@ -1,12 +1,12 @@
 data class Valve(val room: String, val flowRate: Int)
+data class PersonState(val currentValve: Valve, val prevValves: Set<Valve>)
 data class VolcanoState(
-    val myValve: PersonState,
-    val elephantValve: PersonState?,
+    val myState: PersonState,
+    val elephantState: PersonState?,
     val releasedValves: Set<Pair<Int, Valve>>
 )
 
-data class PersonState(val currentValve: Valve, val prevValves: Set<Valve>)
-data class MoveHash(val personStates: Set<PersonState?>, val released: Set<Pair<Int, Valve>>)
+data class VolcanoStateHash(val personStates: Set<PersonState?>, val released: Set<Pair<Int, Valve>>)
 
 class Day16 : Solver {
     override val day = 16
@@ -42,10 +42,10 @@ class Day16 : Solver {
         val canReleaseNow =
             canReleaseValve(
                 currentState,
-                currentState.myValve.currentValve
-            ) || (currentState.elephantValve != null && canReleaseValve(
+                currentState.myState.currentValve
+            ) || (currentState.elephantState != null && canReleaseValve(
                 currentState,
-                currentState.elephantValve.currentValve
+                currentState.elephantState.currentValve
             ))
 
         val firstReleaseTime = if (canReleaseNow) timeRemaining else timeRemaining - 1
@@ -67,7 +67,7 @@ class Day16 : Solver {
             moves.filter { canSurpassMax(timeRemaining, it, highScore) }
         }
 
-    private fun exploreRecursively(
+    private tailrec fun exploreRecursively(
         moves: List<VolcanoState>,
         highScore: Int,
         timeRemaining: Int,
@@ -88,7 +88,7 @@ class Day16 : Solver {
     }
 
     private fun VolcanoState.toDistinctHash() =
-        MoveHash(setOf(myValve, elephantValve), releasedValves)
+        VolcanoStateHash(setOf(myState, elephantState), releasedValves)
 
     private fun findNaiveMaximum(initialState: VolcanoState, startingMoves: Int) =
         exploreRecursively(listOf(initialState), 0, startingMoves) { moves, _, _ ->
@@ -105,49 +105,45 @@ class Day16 : Solver {
             return listOf(move)
         }
 
-        val myMoves = getValidMoves(move, currentTime, VolcanoState::myValve, ::updateMyState)
-        return myMoves.flatMap { myMove ->
-            getValidMoves(
-                myMove,
-                currentTime,
-                VolcanoState::elephantValve,
-                ::updateElephantState
-            )
-        }
+        val myMoves = getValidMoves(move, currentTime, move.myState, ::updateMyState)
+        return move.elephantState?.let { elephantState ->
+            myMoves.flatMap {
+                getValidMoves(
+                    it,
+                    currentTime,
+                    elephantState,
+                    ::updateElephantState
+                )
+            }
+        } ?: myMoves
     }
 
     private fun getValidMoves(
         move: VolcanoState,
         currentTime: Int,
-        personSelector: (VolcanoState) -> PersonState?,
+        person: PersonState,
         personUpdater: (VolcanoState, PersonState) -> VolcanoState
     ): List<VolcanoState> {
-        val moves = mutableListOf<VolcanoState>()
+        val (currentValve, prevValves) = person
+        val movements = valvesMap
+            .getValue(currentValve)
+            .filterNot(prevValves::contains)
+            .map { newValve -> personUpdater(move, PersonState(newValve, prevValves + newValve)) }
 
-        val (currentValve, prevValves) = personSelector(move) ?: return listOf(move)
-
-        if (canReleaseValve(move, currentValve)) {
+        return if (canReleaseValve(move, currentValve)) {
             val newReleased = move.releasedValves.plus(Pair(currentTime, currentValve))
             val newPerson = PersonState(currentValve, emptySet())
-            moves.add(personUpdater(move, newPerson).copy(releasedValves = newReleased))
+            movements + personUpdater(move, newPerson).copy(releasedValves = newReleased)
+        } else {
+            movements
         }
-
-        val roomsToMoveTo = valvesMap.getValue(currentValve)
-        roomsToMoveTo.forEach { newValve ->
-            if (!prevValves.contains(newValve)) {
-                val newPerson = PersonState(newValve, prevValves + currentValve)
-                moves.add(personUpdater(move, newPerson))
-            }
-        }
-
-        return moves.toList()
     }
 
     private fun updateMyState(move: VolcanoState, myState: PersonState): VolcanoState =
-        move.copy(myValve = myState)
+        move.copy(myState = myState)
 
     private fun updateElephantState(move: VolcanoState, elephantState: PersonState): VolcanoState =
-        move.copy(elephantValve = elephantState)
+        move.copy(elephantState = elephantState)
 
     private fun parseValves(line: String): Pair<Valve, List<String>> {
         val replaced = line.replace(
