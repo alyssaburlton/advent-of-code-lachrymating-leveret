@@ -1,6 +1,11 @@
-private const val WIDTH = 7 //0,1,2,3,4,5,6
 private data class Rock(val points: List<Point>, val type: RockType, val stopped: Boolean)
-private data class ChamberState(var rocksDropped: Int, var windTicker: Int, var linesCleared: Int, var occupiedSpaces: MutableSet<Point>, val wind: List<Char>)
+private data class ChamberState(
+    var rocksDropped: Int,
+    var windTicker: Int,
+    var linesCleared: Int,
+    var occupiedSpaces: MutableMap<Int, MutableList<Point>>,
+    val wind: List<Char>
+)
 
 private enum class RockType {
     HORIZONTAL_LINE,
@@ -18,7 +23,7 @@ class Day17 : Solver {
     private val input = readString("17").toCharArray().toList()
 
     override fun partA(): Any {
-        val state = ChamberState(0, 0, 0, mutableSetOf(), input)
+        val state = ChamberState(0, 0, 0, mutableMapOf(), input)
 
         while (state.rocksDropped < 2022) {
             val nextRockType = rockOrder[state.rocksDropped % (rockOrder.size)]
@@ -37,9 +42,13 @@ class Day17 : Solver {
             rock = state.dropRock(rock)
         }
 
-        state.occupiedSpaces.addAll(rock.points)
+        val yValues = rock.points.groupBy { it.y }
+        yValues.forEach { (y, pts) ->
+            val list = state.occupiedSpaces.getOrPut(y, ::mutableListOf)
+            list.addAll(pts)
+        }
 
-        state.clearLines()
+        // state.clearLines(rock)
     }
 
     private fun createRock(rockType: RockType, currentHeight: Int): Rock {
@@ -51,17 +60,18 @@ class Day17 : Solver {
         return ""
     }
 
-    private fun ChamberState.clearLines() {
-        val oldSize = occupiedSpaces.size
-        val highestLine = occupiedSpaces.groupBy { it.y }.filter { it.value.size == 7 }.maxOfOrNull { it.key } ?: return
-        linesCleared += highestLine + 1
+//    private fun ChamberState.clearLines(restedRock: Rock) {
+//        val yValues = restedRock.points.map { it.y }.toSet()
+//        val oldSize = occupiedSpaces.size
+//        val highestLine = occupiedSpaces.groupBy { it.y }.filter { it.value.size == 7 }.maxOfOrNull { it.key } ?: return
+//        linesCleared += highestLine + 1
+//
+//        occupiedSpaces = occupiedSpaces.filter { it.y > highestLine }.toMutableSet()
+//
+//        println("Cleared ${highestLine+1} lines, $oldSize -> ${occupiedSpaces.size}")
+//    }
 
-        occupiedSpaces = occupiedSpaces.filter { it.y > highestLine }.toMutableSet()
-
-        println("Cleared ${highestLine+1} lines, $oldSize -> ${occupiedSpaces.size}")
-    }
-
-    private fun ChamberState.height() = linesCleared + (occupiedSpaces.maxOfOrNull { it.y + 1 } ?: 0)
+    private fun ChamberState.height() = linesCleared + (occupiedSpaces.keys.maxOfOrNull { it + 1 } ?: 0)
 
     private fun ChamberState.dropRock(rock: Rock): Rock {
         val neighbours = rock.getDownNeighbours()
@@ -87,7 +97,7 @@ class Day17 : Solver {
     }
 
     private fun ChamberState.invalidLocation(pts: List<Point>): Boolean =
-        pts.any { it.x < 0 || it.x > 6 || it.y < 0 || occupiedSpaces.contains(it) }
+        pts.any { it.x < 0 || it.x > 6 || it.y < 0 || (occupiedSpaces[it.y]?.contains(it) ?: false) }
 
     private fun Rock.getDownNeighbours(): List<Point> = points.map { Point(it.x, it.y - 1) }
     private fun Rock.getLeftNeighbours(): List<Point> = points.map { Point(it.x - 1, it.y) }
