@@ -4,7 +4,8 @@ private data class ChamberState(
     val rocksDropped: Long,
     val windTicker: Int,
     val occupiedSpaces: Map<Long, List<PointL>>,
-    val wind: List<Char>
+    val statesEncountered: Map<ChamberStateHash, Pair<Long, Long>>,
+    val skippedHeight: Long
 )
 
 private data class ChamberStateHash(val windTicker: Int, val nextRockType: RockType, val normalisedHeights: String)
@@ -22,46 +23,53 @@ private val rockOrder = RockType.values()
 class Day17 : Solver {
     override val day = 17
 
-    private val input = readString("17").toCharArray().toList()
+    private val wind = readString("17").toCharArray().toList()
 
-    override fun partA() = computeHeightAfter(2022)
-    override fun partB() = computeHeightAfter(1000000000000L)
+    override fun partA() = dropRocks(2022)
+    override fun partB() = dropRocks(1000000000000L)
 
     private fun initialState() =
-        ChamberState(createRock(rockOrder.first(), 0), 0, 0, emptyMap(), input)
+        ChamberState(createRock(rockOrder.first(), 0), 0, 0, emptyMap(), emptyMap(), 0)
 
-    private fun computeHeightAfter(rockCount: Long): Long {
-        var state = initialState()
-        val hashesSeen = mutableMapOf<ChamberStateHash, Pair<Long, Long>>()
-        var heightFudgeFactor = 0L
-
-        while (state.rocksDropped < rockCount) {
-            if (heightFudgeFactor == 0L) {
-                val hash = state.toHash()
-                if (hashesSeen.containsKey(hash)) {
-                    val (prevRocksThrown, prevHeight) = hashesSeen.getValue(hash)
-                    val heightGain = state.height() - prevHeight
-                    val cycleLength = state.rocksDropped - prevRocksThrown
-                    val multiples = (rockCount / cycleLength) - 1
-                    heightFudgeFactor = multiples * heightGain
-                    state = state.copy(rocksDropped = state.rocksDropped + (multiples * cycleLength))
-                } else {
-                    hashesSeen[hash] = Pair(state.rocksDropped, state.height())
-                }
-            }
-
-            state = processTurn(state)
+    private tailrec fun dropRocks(totalRocksToDrop: Long, state: ChamberState = initialState()): Long {
+        if (state.rocksDropped == totalRocksToDrop) {
+            return state.totalHeight()
         }
 
-        return state.height() + heightFudgeFactor
+        if (state.skippedHeight == 0L && state.foundCycle()) {
+            return dropRocks(totalRocksToDrop, state.skipAhead(totalRocksToDrop))
+        }
+
+        return dropRocks(totalRocksToDrop, state.storeCurrentHash().dropRockUntilStopped())
     }
 
-    private fun processTurn(initialState: ChamberState) =
-        initialState.dropRockUntilStopped().generateNextRock()
+    private fun ChamberState.storeCurrentHash(): ChamberState {
+        if (skippedHeight == 0L) {
+            val newPair = toHash() to Pair(rocksDropped, height())
+            return copy(statesEncountered = statesEncountered.plus(newPair))
+        }
+
+        return this
+    }
+
+    private fun ChamberState.foundCycle() =
+        statesEncountered.containsKey(toHash())
+
+    private fun ChamberState.skipAhead(totalRocksToDrop: Long): ChamberState {
+        val (prevRocksThrown, prevHeight) = statesEncountered.getValue(toHash())
+        val heightGain = height() - prevHeight
+        val cycleLength = rocksDropped - prevRocksThrown
+        val multiples = (totalRocksToDrop / cycleLength) - 1
+        return copy(
+            rocksDropped = rocksDropped + (multiples * cycleLength),
+            statesEncountered = emptyMap(),
+            skippedHeight = multiples * heightGain
+        )
+    }
 
     private tailrec fun ChamberState.dropRockUntilStopped(): ChamberState {
         if (currentRock.stopped) {
-            return updateOccupiedSpaces()
+            return updateOccupiedSpaces().generateNextRock()
         }
 
         return copy(
@@ -93,6 +101,7 @@ class Day17 : Solver {
     }
 
     private fun ChamberState.height() = occupiedSpaces.keys.maxOfOrNull { it + 1 } ?: 0L
+    private fun ChamberState.totalHeight() = skippedHeight + height()
 
     private fun ChamberState.dropRock(rock: Rock): Rock {
         val neighbours = rock.getDownNeighbours()
