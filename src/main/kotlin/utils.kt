@@ -1,7 +1,7 @@
 import java.io.File
 
 fun readString(filename: String) =
-    File("src/main/resources/$filename.txt").readText()
+    File("src/main/resources/$filename.txt").readText().trimEnd()
 
 fun readStringList(filename: String) =
     File("src/main/resources/$filename.txt").readLines()

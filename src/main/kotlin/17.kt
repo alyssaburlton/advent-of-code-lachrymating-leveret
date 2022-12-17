@@ -1,12 +1,12 @@
 private data class Rock(val points: List<PointL>, val type: RockType, val stopped: Boolean)
 private data class ChamberState(
-    var rocksDropped: Long,
-    var windTicker: Int,
-    var occupiedSpaces: MutableMap<Long, MutableList<PointL>>,
+    val rocksDropped: Long,
+    val windTicker: Int,
+    val occupiedSpaces: Map<Long, List<PointL>>,
     val wind: List<Char>
 )
 
-private data class ChamberStateHash(val windTicker: Int, val normalisedHeights: String)
+private data class ChamberStateHash(val windTicker: Int, val nextRockType: RockType, val normalisedHeights: String)
 
 private enum class RockType {
     HORIZONTAL_LINE,
@@ -16,7 +16,7 @@ private enum class RockType {
     BOX
 }
 
-private val rockOrder = RockType.values().toList()
+private val rockOrder = RockType.values()
 
 class Day17 : Solver {
     override val day = 17
@@ -27,56 +27,50 @@ class Day17 : Solver {
     override fun partB() = computeHeightAfter(1000000000000L)
 
     private fun computeHeightAfter(rockCount: Long): Long {
-        val state = ChamberState(0, 0, mutableMapOf(), input)
+        var state = ChamberState(0, 0, mutableMapOf(), input)
         val hashesSeen = mutableMapOf<ChamberStateHash, Pair<Long, Long>>()
         var heightFudgeFactor = 0L
 
         while (state.rocksDropped < rockCount) {
-            if (state.rocksDropped % 10000 == 0L) {
-                println("Done ${state.rocksDropped}")
-            }
-
             val nextRockType = rockOrder[(state.rocksDropped % (rockOrder.size)).toInt()]
             if (heightFudgeFactor == 0L) {
-                val hash = state.toHash()
-                val new = !hashesSeen.containsKey(hash)
-                if (!new) {
+                val hash = state.toHash(nextRockType)
+                if (hashesSeen.containsKey(hash)) {
                     val (prevRocksThrown, prevHeight) = hashesSeen.getValue(hash)
                     val heightGain = state.height() - prevHeight
                     val cycleLength = state.rocksDropped - prevRocksThrown
-                    println("Found cycle from $prevRocksThrown -> ${state.rocksDropped} rocks. Height gain is $heightGain")
                     val multiples = (rockCount / cycleLength) - 1
-                    println("Setting fudge factor to $multiples * $heightGain")
                     heightFudgeFactor = multiples * heightGain
-                    state.rocksDropped += multiples * cycleLength
-                    println("New rocksDropped is ${state.rocksDropped}")
+                    state = state.copy(rocksDropped = state.rocksDropped + (multiples * cycleLength))
                 } else {
                     hashesSeen[hash] = Pair(state.rocksDropped, state.height())
                 }
             }
 
             val rock = createRock(nextRockType, state.height())
-            processTurn(rock, state)
-            state.rocksDropped++
+            state = processTurn(rock, state)
         }
 
         return state.height() + heightFudgeFactor
     }
 
-    private fun processTurn(startingRock: Rock, state: ChamberState) {
+    private fun processTurn(startingRock: Rock, initialState: ChamberState): ChamberState {
+        var state = initialState
         var rock = startingRock
         while (!rock.stopped) {
             rock = state.blowRock(rock)
+            state = state.copy(windTicker = (state.windTicker + 1) % state.wind.size)
             rock = state.dropRock(rock)
         }
 
         val yValues = rock.points.groupBy { it.y }
-        yValues.forEach { (y, pts) ->
-            val list = state.occupiedSpaces.getOrPut(y, ::mutableListOf)
-            list.addAll(pts)
+        val updatedYValues = yValues.map { (y, pts) ->
+            val existingPoints: List<PointL> = state.occupiedSpaces.getOrDefault(y, emptyList())
+            y to existingPoints + pts
         }
 
-        state.clearLines(rock)
+        return state.clearLines(rock)
+            .copy(occupiedSpaces = state.occupiedSpaces.plus(updatedYValues), rocksDropped = state.rocksDropped + 1)
     }
 
     private fun createRock(rockType: RockType, currentHeight: Long): Rock {
@@ -84,12 +78,10 @@ class Day17 : Solver {
         return Rock(pts, rockType, false)
     }
 
-    private fun ChamberState.clearLines(restedRock: Rock) {
+    private fun ChamberState.clearLines(restedRock: Rock): ChamberState {
         val yValues = restedRock.points.map { it.y }.toSet()
-
-        val lowestLine = yValues.filter { occupiedSpaces[it]?.size == 7 }.minOfOrNull { it } ?: return
-
-        occupiedSpaces = occupiedSpaces.filter { it.key >= lowestLine }.toMutableMap()
+        val lowestLine = yValues.filter { occupiedSpaces[it]?.size == 7 }.minOfOrNull { it } ?: return this
+        return copy(occupiedSpaces = occupiedSpaces.filter { it.key >= lowestLine })
     }
 
     private fun ChamberState.height() = occupiedSpaces.keys.maxOfOrNull { it + 1 } ?: 0L
@@ -105,7 +97,6 @@ class Day17 : Solver {
 
     private fun ChamberState.blowRock(rock: Rock): Rock {
         val windDir = wind[windTicker]
-        windTicker = (windTicker + 1) % wind.size
 
         val neighbours = if (windDir == '<') rock.getLeftNeighbours() else rock.getRightNeighbours()
         if (invalidLocation(neighbours)) {
@@ -139,7 +130,7 @@ class Day17 : Solver {
         return orderedHeights.map { it - orderedHeights.min() }
     }
 
-    private fun ChamberState.toHash(): ChamberStateHash {
-        return ChamberStateHash(windTicker, getNormalisedHeights().toString())
+    private fun ChamberState.toHash(nextRockType: RockType): ChamberStateHash {
+        return ChamberStateHash(windTicker, nextRockType, getNormalisedHeights().toString())
     }
 }
