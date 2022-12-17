@@ -1,6 +1,7 @@
 import kotlin.math.abs
 
 data class Point(val x: Int, val y: Int)
+data class PointL(val x: Long, val y: Long)
 
 fun Point.neighbours() = listOf(
     Point(x, y - 1),
