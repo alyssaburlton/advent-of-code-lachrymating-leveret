@@ -44,12 +44,8 @@ class Day17 : Solver {
     }
 
     private fun ChamberState.storeCurrentHash(): ChamberState {
-        if (skippedHeight == 0L) {
-            val newPair = toHash() to Pair(rocksDropped, height())
-            return copy(statesEncountered = statesEncountered.plus(newPair))
-        }
-
-        return this
+        val newPair = toHash() to Pair(rocksDropped, height())
+        return copy(statesEncountered = statesEncountered.plus(newPair))
     }
 
     private fun ChamberState.foundCycle() =
@@ -69,7 +65,7 @@ class Day17 : Solver {
 
     private tailrec fun ChamberState.dropRockUntilStopped(): ChamberState {
         if (currentRock.stopped) {
-            return updateOccupiedSpaces().generateNextRock()
+            return finaliseRock().generateNextRock()
         }
 
         return copy(
@@ -88,7 +84,7 @@ class Day17 : Solver {
         return Rock(pts, rockType, false)
     }
 
-    private fun ChamberState.updateOccupiedSpaces(): ChamberState {
+    private fun ChamberState.finaliseRock(): ChamberState {
         val rockOccupation = currentRock.points.groupBy { it.y }
         val updatedYValues = rockOccupation.map { (y, pts) ->
             val existingPoints: List<PointL> = occupiedSpaces.getOrDefault(y, emptyList())
@@ -105,22 +101,14 @@ class Day17 : Solver {
 
     private fun ChamberState.dropRock(rock: Rock): Rock {
         val neighbours = rock.getDownNeighbours()
-        if (invalidLocation(neighbours)) {
-            return rock.copy(stopped = true)
-        }
-
-        return rock.copy(points = neighbours)
+        return if (invalidLocation(neighbours)) rock.copy(stopped = true) else rock.copy(points = neighbours)
     }
 
     private fun ChamberState.blowRock(): Rock {
-        val windDir = wind[windTicker]
+        val neighbours =
+            if (wind[windTicker] == '<') currentRock.getLeftNeighbours() else currentRock.getRightNeighbours()
 
-        val neighbours = if (windDir == '<') currentRock.getLeftNeighbours() else currentRock.getRightNeighbours()
-        if (invalidLocation(neighbours)) {
-            return currentRock
-        }
-
-        return currentRock.copy(points = neighbours)
+        return if (invalidLocation(neighbours)) currentRock else currentRock.copy(points = neighbours)
     }
 
     private fun ChamberState.invalidLocation(pts: List<PointL>): Boolean =
@@ -130,15 +118,14 @@ class Day17 : Solver {
     private fun Rock.getLeftNeighbours(): List<PointL> = points.map { PointL(it.x - 1, it.y) }
     private fun Rock.getRightNeighbours(): List<PointL> = points.map { PointL(it.x + 1, it.y) }
 
-    private fun getTemplatePoints(type: RockType): List<PointL> {
-        return when (type) {
+    private fun getTemplatePoints(type: RockType) =
+        when (type) {
             RockType.HORIZONTAL_LINE -> listOf(PointL(2, 0), PointL(3, 0), PointL(4, 0), PointL(5, 0))
             RockType.PLUS -> listOf(PointL(3, 0), PointL(2, 1), PointL(3, 1), PointL(4, 1), PointL(3, 2))
             RockType.L -> listOf(PointL(4, 2), PointL(4, 1), PointL(2, 0), PointL(3, 0), PointL(4, 0))
             RockType.VERTICAL_LINE -> listOf(PointL(2, 0), PointL(2, 1), PointL(2, 2), PointL(2, 3))
             RockType.BOX -> listOf(PointL(2, 0), PointL(3, 0), PointL(2, 1), PointL(3, 1))
         }
-    }
 
     private fun ChamberState.getNormalisedHeights(): List<Long> {
         val xToHighestPoint: Map<Long, Long> =
