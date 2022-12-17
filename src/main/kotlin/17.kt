@@ -1,5 +1,6 @@
 private data class Rock(val points: List<PointL>, val type: RockType, val stopped: Boolean)
 private data class ChamberState(
+    val currentRock: Rock,
     val rocksDropped: Long,
     val windTicker: Int,
     val occupiedSpaces: Map<Long, List<PointL>>,
@@ -26,15 +27,17 @@ class Day17 : Solver {
     override fun partA() = computeHeightAfter(2022)
     override fun partB() = computeHeightAfter(1000000000000L)
 
+    private fun initialState() =
+        ChamberState(createRock(rockOrder.first(), 0), 0, 0, emptyMap(), input)
+
     private fun computeHeightAfter(rockCount: Long): Long {
-        var state = ChamberState(0, 0, mutableMapOf(), input)
+        var state = initialState()
         val hashesSeen = mutableMapOf<ChamberStateHash, Pair<Long, Long>>()
         var heightFudgeFactor = 0L
 
         while (state.rocksDropped < rockCount) {
-            val nextRockType = rockOrder[(state.rocksDropped % (rockOrder.size)).toInt()]
             if (heightFudgeFactor == 0L) {
-                val hash = state.toHash(nextRockType)
+                val hash = state.toHash()
                 if (hashesSeen.containsKey(hash)) {
                     val (prevRocksThrown, prevHeight) = hashesSeen.getValue(hash)
                     val heightGain = state.height() - prevHeight
@@ -47,30 +50,29 @@ class Day17 : Solver {
                 }
             }
 
-            val rock = createRock(nextRockType, state.height())
-            state = processTurn(rock, state)
+            state = processTurn(state)
         }
 
         return state.height() + heightFudgeFactor
     }
 
-    private fun processTurn(startingRock: Rock, initialState: ChamberState): ChamberState {
-        var state = initialState
-        var rock = startingRock
-        while (!rock.stopped) {
-            rock = state.blowRock(rock)
-            state = state.copy(windTicker = (state.windTicker + 1) % state.wind.size)
-            rock = state.dropRock(rock)
+    private fun processTurn(initialState: ChamberState) =
+        initialState.dropRockUntilStopped().generateNextRock()
+
+    private tailrec fun ChamberState.dropRockUntilStopped(): ChamberState {
+        if (currentRock.stopped) {
+            return updateOccupiedSpaces()
         }
 
-        val yValues = rock.points.groupBy { it.y }
-        val updatedYValues = yValues.map { (y, pts) ->
-            val existingPoints: List<PointL> = state.occupiedSpaces.getOrDefault(y, emptyList())
-            y to existingPoints + pts
-        }
+        return copy(
+            currentRock = dropRock(blowRock()),
+            windTicker = (windTicker + 1) % wind.size
+        ).dropRockUntilStopped()
+    }
 
-        return state.clearLines(rock)
-            .copy(occupiedSpaces = state.occupiedSpaces.plus(updatedYValues), rocksDropped = state.rocksDropped + 1)
+    private fun ChamberState.generateNextRock(): ChamberState {
+        val nextRockType = rockOrder[(rocksDropped % (rockOrder.size)).toInt()]
+        return this.copy(currentRock = createRock(nextRockType, height()))
     }
 
     private fun createRock(rockType: RockType, currentHeight: Long): Rock {
@@ -78,10 +80,16 @@ class Day17 : Solver {
         return Rock(pts, rockType, false)
     }
 
-    private fun ChamberState.clearLines(restedRock: Rock): ChamberState {
-        val yValues = restedRock.points.map { it.y }.toSet()
-        val lowestLine = yValues.filter { occupiedSpaces[it]?.size == 7 }.minOfOrNull { it } ?: return this
-        return copy(occupiedSpaces = occupiedSpaces.filter { it.key >= lowestLine })
+    private fun ChamberState.updateOccupiedSpaces(): ChamberState {
+        val rockOccupation = currentRock.points.groupBy { it.y }
+        val updatedYValues = rockOccupation.map { (y, pts) ->
+            val existingPoints: List<PointL> = occupiedSpaces.getOrDefault(y, emptyList())
+            y to existingPoints + pts
+        }
+
+        val newlyOccupied = occupiedSpaces.plus(updatedYValues)
+        val lowestLine = rockOccupation.keys.filter { newlyOccupied[it]?.size == 7 }.minOfOrNull { it } ?: 0
+        return copy(rocksDropped = rocksDropped + 1, occupiedSpaces = newlyOccupied.filter { it.key >= lowestLine })
     }
 
     private fun ChamberState.height() = occupiedSpaces.keys.maxOfOrNull { it + 1 } ?: 0L
@@ -95,15 +103,15 @@ class Day17 : Solver {
         return rock.copy(points = neighbours)
     }
 
-    private fun ChamberState.blowRock(rock: Rock): Rock {
+    private fun ChamberState.blowRock(): Rock {
         val windDir = wind[windTicker]
 
-        val neighbours = if (windDir == '<') rock.getLeftNeighbours() else rock.getRightNeighbours()
+        val neighbours = if (windDir == '<') currentRock.getLeftNeighbours() else currentRock.getRightNeighbours()
         if (invalidLocation(neighbours)) {
-            return rock
+            return currentRock
         }
 
-        return rock.copy(points = neighbours)
+        return currentRock.copy(points = neighbours)
     }
 
     private fun ChamberState.invalidLocation(pts: List<PointL>): Boolean =
@@ -130,7 +138,6 @@ class Day17 : Solver {
         return orderedHeights.map { it - orderedHeights.min() }
     }
 
-    private fun ChamberState.toHash(nextRockType: RockType): ChamberStateHash {
-        return ChamberStateHash(windTicker, nextRockType, getNormalisedHeights().toString())
-    }
+    private fun ChamberState.toHash() =
+        ChamberStateHash(windTicker, currentRock.type, getNormalisedHeights().toString())
 }
