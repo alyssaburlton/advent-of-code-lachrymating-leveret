@@ -2,6 +2,7 @@ import kotlin.math.abs
 
 data class Point(val x: Int, val y: Int)
 data class PointL(val x: Long, val y: Long)
+data class Point3D(val x: Int, val y: Int, val z: Int)
 
 fun Point.neighbours() = listOf(
     Point(x, y - 1),

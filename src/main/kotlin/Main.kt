@@ -15,7 +15,8 @@ val solvers = listOf(
 //    Day14(),
 //    Day15(),
 //    Day16(),
-    Day17()
+//    Day17(),
+    Day18()
 )
 
 const val RESET_COLOR = "\u001b[0m"
