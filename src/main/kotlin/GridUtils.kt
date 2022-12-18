@@ -4,6 +4,15 @@ data class Point(val x: Int, val y: Int)
 data class PointL(val x: Long, val y: Long)
 data class Point3D(val x: Int, val y: Int, val z: Int)
 
+fun Point3D.neighbours() = listOf(
+    Point3D(x, y - 1, z),
+    Point3D(x, y + 1, z),
+    Point3D(x - 1, y, z),
+    Point3D(x + 1, y, z),
+    Point3D(x, y, z + 1),
+    Point3D(x, y, z - 1)
+)
+
 fun Point.neighbours() = listOf(
     Point(x, y - 1),
     Point(x, y + 1),
