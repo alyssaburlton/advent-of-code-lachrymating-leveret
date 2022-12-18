@@ -3,12 +3,12 @@ class Day18 : Solver {
 
     private val input = readStringList("18").map(::parsePoint)
 
-    private val xMax = input.maxOf(Point3D::x) + 2
-    private val xMin = input.minOf(Point3D::x) - 2
-    private val yMax = input.maxOf(Point3D::y) + 2
-    private val yMin = input.minOf(Point3D::y) - 2
-    private val zMax = input.maxOf(Point3D::z) + 2
-    private val zMin = input.minOf(Point3D::z) - 2
+    private val xMax = input.maxOf(Point3D::x) + 1
+    private val xMin = input.minOf(Point3D::x) - 1
+    private val yMax = input.maxOf(Point3D::y) + 1
+    private val yMin = input.minOf(Point3D::y) - 1
+    private val zMax = input.maxOf(Point3D::z) + 1
+    private val zMin = input.minOf(Point3D::z) - 1
 
     override fun partA(): Any {
         val sides = input.flatMap(::toCube)
@@ -16,13 +16,6 @@ class Day18 : Solver {
         return singleSides.size
     }
 
-    /**
-     * 2664 is too high...
-     * 1949 is too low...
-     *
-     * 1953 is also wrong.
-     * 2164 is also wrong.
-     */
     override fun partB(): Any {
         val allCubes = input.map(::toCube)
         val sides = allCubes.flatten()
@@ -41,7 +34,7 @@ class Day18 : Solver {
             )
         }
         val cubesToMove =
-            extraSides.flatten().toSet().map(::toCube).filterNot { allCubes.contains(it) || !cubeInBounds(it) }
+            extraSides.flatten().toSet().map(::toCube).filterNot { allCubes.contains(it) }
         val newSides = cubesToMove.flatten()
         val singleSidesBeingConsidered = singleSides.filter { newSides.contains(it) }
         println("Considering ${singleSidesBeingConsidered.size}")
@@ -50,12 +43,8 @@ class Day18 : Solver {
         val cubesThatCanReachOutside = cubesToMove.filter { canReachOutside(allCubes.toSet(), listOf(it)) }
 
         println("${cubesThatCanReachOutside.size} / ${cubesToMove.size} could reach outside")
-        val sidesThatCanReachOutside = cubesThatCanReachOutside.flatten()
-
-        val sidesBeingRemoved = singleSides.filterNot { sidesThatCanReachOutside.contains(it) }
-        println(sidesBeingRemoved)
-
-        return singleSides.filter { sidesThatCanReachOutside.contains(it) }.size
+        val sidesThatCanReachOutside = cubesThatCanReachOutside.flatten().toSet()
+        return singleSides.intersect(sidesThatCanReachOutside).size
     }
 
     private fun canReachOutside(
@@ -113,7 +102,7 @@ class Day18 : Solver {
     }
 
     /**
-     * Call the point the top-left-front corner. Then the sides are found by increasing
+     * Call the point the top-left-front corner.
      */
     private fun toCube(pt: Point3D): Set<Set<Point3D>> {
         return setOf(
