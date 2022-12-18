@@ -10,17 +10,15 @@ class Day18 : Solver {
     private val zMax = input.maxOf(Point3D::z) + 1
     private val zMin = input.minOf(Point3D::z) - 1
 
-    override fun partA() =
-        (input.flatMap { it.neighbours() } - input).size
+    private val canReachOutsideMemo = mutableMapOf<Point3D, Boolean>()
 
-    override fun partB(): Any {
-        val emptySpaces = input.flatMap {
-            it.neighbours()
-        } - input
+    override fun partA() = getEmptyAdjacents().size
 
-        val outsideSpaces = emptySpaces.filter { canReachOutside(listOf(it)) }
-        return outsideSpaces.size
-    }
+    override fun partB() = getEmptyAdjacents().filter { canReachOutside(listOf(it)) }.size
+
+    private fun getEmptyAdjacents() = input.flatMap {
+        it.neighbours()
+    } - input
 
     private fun canReachOutside(
         currentSpots: List<Point3D>,
@@ -30,8 +28,21 @@ class Day18 : Solver {
             input.contains(it) || spotsVisited.contains(it)
         }
 
-        if (nextStep.isEmpty()) return false
-        if (nextStep.any(::outOfBounds)) return true
+        val known = nextStep.firstNotNullOfOrNull { canReachOutsideMemo[it] }
+        if (known != null) {
+            return known
+        }
+
+        if (nextStep.isEmpty()) {
+            val newValues = spotsVisited.map { it to false }
+            canReachOutsideMemo.putAll(newValues)
+            return false
+        }
+        if (nextStep.any(::outOfBounds)) {
+            val newValues = spotsVisited.map { it to true }
+            canReachOutsideMemo.putAll(newValues)
+            return true
+        }
 
         return canReachOutside(nextStep, spotsVisited + currentSpots)
     }
