@@ -18,8 +18,6 @@ data class OreState(
     val pendingRobot: OreType?
 )
 
-// 970 is wrong...
-// 1062 is too low
 class Day19 : Solver {
     override val day = 19
 
@@ -32,8 +30,8 @@ class Day19 : Solver {
     }
 
     override fun partB(): Any {
-        val results = blueprints.subList(0, 3).map { scoreBlueprint(it, 32) }
-        // println(results)
+        val results = blueprints.take(3).map { scoreBlueprint(it, 32) }
+        println(results)
         return results.product()
     }
 
@@ -61,9 +59,6 @@ class Day19 : Solver {
      */
     private fun filterOutByMaxObsidianBots(states: List<OreState>): List<OreState> {
         val max = states.maxOf { it.robots.getOrDefault(OreType.OBSIDIAN, 0) }
-        if (max > 0) {
-            // println("Max geode robots: $max")
-        }
         return states.filter { it.robots.getOrDefault(OreType.OBSIDIAN, 0) >= max - 3 }
     }
 
@@ -72,9 +67,6 @@ class Day19 : Solver {
      */
     private fun filterOutByMaxGeodeBots(states: List<OreState>): List<OreState> {
         val max = states.maxOf { it.robots.getOrDefault(OreType.GEODE, 0) }
-        if (max > 0) {
-            // println("Max geode robots: $max")
-        }
         return states.filter { it.robots.getOrDefault(OreType.GEODE, 0) >= max - 1 }
     }
 
