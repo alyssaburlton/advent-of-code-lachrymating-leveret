@@ -18,11 +18,11 @@ class Day20 : Solver {
 
     private fun mixList(list: List<Number>) =
         list.indices.fold(list) { currentList, originalIx ->
-            val element = currentList.first { it.originalIx == originalIx }
-            val currentIx = currentList.indexOf(element)
+            val currentIx = currentList.indexOfFirst { it.originalIx == originalIx }
+            val element = currentList[currentIx]
             val newIx = (currentIx + element.value).mod(input.size - 1)
 
-            val without = currentList.minus(element)
+            val without = currentList.subList(0, currentIx) + currentList.subList(currentIx + 1, currentList.size)
             without.subList(0, newIx) + element + without.subList(newIx, without.size)
         }
 
