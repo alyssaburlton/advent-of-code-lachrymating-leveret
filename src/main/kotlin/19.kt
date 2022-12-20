@@ -8,7 +8,7 @@ enum class OreType {
 data class OreBlueprint(
     val id: Int,
     val robotCosts: Map<OreType, Map<OreType, Int>>,
-    val maxRobotsOfEachType: Map<OreType, Int>
+    val maxCostOfEachType: Map<OreType, Int>
 )
 
 data class OreState(
@@ -18,10 +18,21 @@ data class OreState(
     val pendingRobot: OreType?
 )
 
+fun main() {
+    Day19().scoreProblemBlueprint()
+}
+
 class Day19 : Solver {
     override val day = 19
 
     private val blueprints = readStringList("19").map(::parseBlueprint)
+
+    fun scoreProblemBlueprint() {
+        val timer = DurationTimer()
+        val result = scoreBlueprint(blueprints.last(), 24)
+        println("${timer.duration()}ms")
+        println(result)
+    }
 
     override fun partA(): Any {
         return blueprints.sumOf {
@@ -39,18 +50,18 @@ class Day19 : Solver {
         // println("Scoring blueprint ${blueprint.id}...")
         val state = OreState(blueprint, OreType.values().associateWith { 0 }, mapOf(OreType.ORE to 1), null)
         var states = listOf(state)
-        var time = 0
-        while (time < maxTime) {
-            states = takeAllSteps(states)
-            // println("$time: ${states.size}")
-            time++
+        var timeRemaining = maxTime
+        while (timeRemaining > 0) {
+            states = takeAllSteps(states, timeRemaining)
+            // println("$timeRemaining: ${states.size}")
+            timeRemaining--
         }
 
         return states.maxOf { it.resources.getOrDefault(OreType.GEODE, 0) }
     }
 
-    private fun takeAllSteps(states: List<OreState>): List<OreState> {
-        val nextSteps = states.flatMap(::makeAllChoices).map(::gainResources).distinct()
+    private fun takeAllSteps(states: List<OreState>, time: Int): List<OreState> {
+        val nextSteps = states.flatMap(::makeAllChoices).map { gainResources(it, time) }.distinct()
         return filterOutByMaxGeodeBots(filterOutByMaxObsidianBots(nextSteps))
     }
 
@@ -93,7 +104,7 @@ class Day19 : Solver {
 
     private fun shouldBuyRobot(state: OreState, type: OreType, costs: Map<OreType, Int>): Boolean {
         val currentCount = state.robots.getOrDefault(type, 0)
-        val potentiallyNeed = state.blueprint.maxRobotsOfEachType.getValue(type)
+        val potentiallyNeed = state.blueprint.maxCostOfEachType.getValue(type)
 
         val shouldGet = type == OreType.GEODE || currentCount < potentiallyNeed
 
@@ -114,12 +125,20 @@ class Day19 : Solver {
         return state.copy(pendingRobot = type, resources = newResources)
     }
 
-    private fun gainResources(state: OreState): OreState {
+    private fun gainResources(state: OreState, timeRemaining: Int): OreState {
         val newResources = state.resources.mapValues { (oreType, amount) ->
             val robots = state.robots[oreType]
-            if (robots != null) {
+            val newAmount = if (robots != null) {
                 amount + robots
             } else amount
+
+            // Throw away resources that we definitely don't need, so we can .distinct() out more "equivalent" states
+            if (oreType != OreType.GEODE) {
+                val maxNeeded = (timeRemaining - 1) * state.blueprint.maxCostOfEachType[oreType]!!
+                minOf(newAmount, maxNeeded)
+            } else {
+                newAmount
+            }
         }
 
         val pendingBot = state.pendingRobot
