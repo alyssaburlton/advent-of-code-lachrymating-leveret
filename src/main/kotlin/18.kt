@@ -12,20 +12,21 @@ class Day18 : Solver {
 
     override fun partA() = getEmptyAdjacents().size
 
-    override fun partB(): Any {
-        val map = getEmptyAdjacents().fold(mapOf<Point3D, Boolean>()) { map, pt ->
-            checkWhatCanReachOutside(
-                listOf(pt),
-                map
-            )
-        }
-
-        return getEmptyAdjacents().filter { map.getValue(it) }.size
+    override fun partB() = buildMapOfWhatCanReachOutside().let { map ->
+        getEmptyAdjacents().filter { map.getValue(it) }.size
     }
 
     private fun getEmptyAdjacents() = input.flatMap {
         it.neighbours()
     } - input
+
+    private fun buildMapOfWhatCanReachOutside() =
+        getEmptyAdjacents().fold(mapOf<Point3D, Boolean>()) { map, pt ->
+            checkWhatCanReachOutside(
+                listOf(pt),
+                map
+            )
+        }
 
     private tailrec fun checkWhatCanReachOutside(
         currentSpots: List<Point3D>,
@@ -33,19 +34,16 @@ class Day18 : Solver {
         spotsVisited: Set<Point3D> = emptySet()
     ): Map<Point3D, Boolean> {
         if (currentSpots.isEmpty()) {
-            val newValues = spotsVisited.map { it to false }
-            return knownValues + newValues
-        }
-
-        if (currentSpots.any(::outOfBounds)) {
-            val newValues = (spotsVisited + currentSpots).map { it to true }
-            return knownValues + newValues
+            return addToMap(knownValues, spotsVisited, false)
         }
 
         val known = currentSpots.firstNotNullOfOrNull { knownValues[it] }
         if (known != null) {
-            val newValues = (spotsVisited - knownValues.keys).map { it to known }
-            return knownValues + newValues
+            return addToMap(knownValues, spotsVisited, known)
+        }
+
+        if (currentSpots.any(::outOfBounds)) {
+            return addToMap(knownValues, spotsVisited, true)
         }
 
         val nextStep = currentSpots.flatMap { it.neighbours() }.distinct().filterNot {
@@ -54,6 +52,9 @@ class Day18 : Solver {
 
         return checkWhatCanReachOutside(nextStep, knownValues, spotsVisited + currentSpots)
     }
+
+    private fun addToMap(map: Map<Point3D, Boolean>, points: Set<Point3D>, value: Boolean) =
+        map + points.associateWith { value }
 
     private fun outOfBounds(point: Point3D) =
         point.x < xMin || point.x > xMax || point.y < yMin || point.y > yMax || point.z < zMin || point.z > zMax
