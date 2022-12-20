@@ -22,10 +22,14 @@ class Day18 : Solver {
 
     private fun buildMapOfWhatCanReachOutside() =
         getEmptyAdjacents().fold(mapOf<Point3D, Boolean>()) { map, pt ->
-            checkWhatCanReachOutside(
-                listOf(pt),
+            if (map.containsKey(pt)) {
                 map
-            )
+            } else {
+                checkWhatCanReachOutside(
+                    listOf(pt),
+                    map
+                )
+            }
         }
 
     private tailrec fun checkWhatCanReachOutside(
