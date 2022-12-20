@@ -10,41 +10,49 @@ class Day18 : Solver {
     private val zMax = input.maxOf(Point3D::z) + 1
     private val zMin = input.minOf(Point3D::z) - 1
 
-    private val canReachOutsideMemo = mutableMapOf<Point3D, Boolean>()
-
     override fun partA() = getEmptyAdjacents().size
 
-    override fun partB() = getEmptyAdjacents().filter { canReachOutside(listOf(it)) }.size
+    override fun partB(): Any {
+        val map = getEmptyAdjacents().fold(mapOf<Point3D, Boolean>()) { map, pt ->
+            checkWhatCanReachOutside(
+                listOf(pt),
+                map
+            )
+        }
+
+        return getEmptyAdjacents().filter { map.getValue(it) }.size
+    }
 
     private fun getEmptyAdjacents() = input.flatMap {
         it.neighbours()
     } - input
 
-    private fun canReachOutside(
+    private tailrec fun checkWhatCanReachOutside(
         currentSpots: List<Point3D>,
+        knownValues: Map<Point3D, Boolean>,
         spotsVisited: Set<Point3D> = emptySet()
-    ): Boolean {
+    ): Map<Point3D, Boolean> {
+        if (currentSpots.isEmpty()) {
+            val newValues = spotsVisited.map { it to false }
+            return knownValues + newValues
+        }
+
+        if (currentSpots.any(::outOfBounds)) {
+            val newValues = (spotsVisited + currentSpots).map { it to true }
+            return knownValues + newValues
+        }
+
+        val known = currentSpots.firstNotNullOfOrNull { knownValues[it] }
+        if (known != null) {
+            val newValues = (spotsVisited - knownValues.keys).map { it to known }
+            return knownValues + newValues
+        }
+
         val nextStep = currentSpots.flatMap { it.neighbours() }.distinct().filterNot {
             input.contains(it) || spotsVisited.contains(it)
         }
 
-        val known = nextStep.firstNotNullOfOrNull { canReachOutsideMemo[it] }
-        if (known != null) {
-            return known
-        }
-
-        if (nextStep.isEmpty()) {
-            val newValues = spotsVisited.map { it to false }
-            canReachOutsideMemo.putAll(newValues)
-            return false
-        }
-        if (nextStep.any(::outOfBounds)) {
-            val newValues = spotsVisited.map { it to true }
-            canReachOutsideMemo.putAll(newValues)
-            return true
-        }
-
-        return canReachOutside(nextStep, spotsVisited + currentSpots)
+        return checkWhatCanReachOutside(nextStep, knownValues, spotsVisited + currentSpots)
     }
 
     private fun outOfBounds(point: Point3D) =
