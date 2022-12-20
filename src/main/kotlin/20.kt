@@ -1,56 +1,42 @@
 class Day20 : Solver {
     override val day = 20
 
-    private val input = readIntegerList("20")
+
+    private data class Number(val originalIx: Int, val value: Long)
+
+    private val input = readIntegerList("20").map(Int::toLong).mapIndexed(::Number)
     private val decryptionKey = 811589153
 
-    private data class Number(val value: Long, val originalIx: Int)
-
     override fun partA(): Any {
-        val originalOrder = input.map { it.toLong() }
-        val newList = originalOrder.mapIndexed { ix, no -> Number(no, ix) }.toMutableList()
-
-        originalOrder.indices.forEach { originalIx ->
-            // println("Moving $number")
-            val currentIx = newList.indexOfFirst { it.originalIx == originalIx }
-            val element = newList.find { it.originalIx == originalIx }!!
-            var newIx = ((currentIx + element.value) % (input.size - 1)).toInt()
-            if (newIx <= 0) {
-                newIx += (input.size - 1)
-            }
-
-            newList.removeAt(currentIx)
-            newList.add(newIx, Number(element.value, originalIx))
-        }
-
-        // println(newList)
-        val zeroIndex = newList.indexOfFirst { it.value == 0L }
-        return newList[(zeroIndex + 1000) % newList.size].value + newList[(zeroIndex + 2000) % newList.size].value + newList[(zeroIndex + 3000) % newList.size].value
+        val newList = input.toMutableList()
+        mixList(newList)
+        return calculateGroveScore(newList)
     }
 
     override fun partB(): Any {
-        val originalOrder = input.map { it.toLong() * decryptionKey }
-        val newList = originalOrder.mapIndexed { ix, no -> Number(no, ix) }.toMutableList()
+        val newList = input.map { Number(it.originalIx, it.value * decryptionKey) }.toMutableList()
 
         repeat(10) {
-            originalOrder.indices.forEach { originalIx ->
-                // println("Moving $number")
-                val currentIx = newList.indexOfFirst { it.originalIx == originalIx }
-                val element = newList.find { it.originalIx == originalIx }!!
-                var newIx = ((currentIx + element.value) % (input.size - 1)).toInt()
-                if (newIx <= 0) {
-                    newIx += (input.size - 1)
-                }
-
-                newList.removeAt(currentIx)
-                newList.add(newIx, Number(element.value, originalIx))
-            }
-
-            println(newList.map { it.value })
+            mixList(newList)
         }
 
+        return calculateGroveScore(newList)
+    }
 
-        val zeroIndex = newList.indexOfFirst { it.value == 0L }
-        return newList[(zeroIndex + 1000) % newList.size].value + newList[(zeroIndex + 2000) % newList.size].value + newList[(zeroIndex + 3000) % newList.size].value
+    private fun mixList(list: MutableList<Number>) {
+        list.indices.forEach { originalIx ->
+            val element = list.first { it.originalIx == originalIx }
+            val currentIx = list.indexOf(element)
+            val newIx = (currentIx + element.value).mod(input.size - 1)
+
+            list.removeAt(currentIx)
+            list.add(newIx, element)
+        }
+    }
+
+    private fun calculateGroveScore(decryptionResult: List<Number>): Long {
+        val decryptedFile = decryptionResult.map { it.value }
+        val zeroIndex = decryptedFile.indexOf(0L)
+        return listOf(1000, 2000, 3000).sumOf { decryptedFile[(zeroIndex + it) % decryptedFile.size] }
     }
 }
