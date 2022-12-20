@@ -41,15 +41,13 @@ fun parseGrid(gridLines: List<String>): Grid<String> {
     }
 
     val rowLength = rowLengths.first()
-    val map = mutableMapOf<Point, String>()
-
-    for (x in (0 until rowLength)) {
-        for (y in gridLines.indices) {
-            map[Point(x, y)] = gridLines[y][x].toString()
+    val pairs = (0 until rowLength).flatMap { x ->
+        gridLines.indices.map { y ->
+            Point(x, y) to gridLines[y][x].toString()
         }
     }
 
-    return Grid(map.toMap())
+    return Grid(mapOf(*pairs.toTypedArray()))
 }
 
 class Grid<T>(val map: Map<Point, T>) {
@@ -66,14 +64,7 @@ class Grid<T>(val map: Map<Point, T>) {
     fun getValue(pt: Point) = map.getValue(pt)
 
     fun setValue(pt: Point, value: T): Grid<T> {
-        val newMap = map.toMutableMap()
-        newMap[pt] = value
-        return Grid(newMap)
-    }
-
-    fun setValues(pts: List<Point>, value: T): Grid<T> {
-        val newMap = map.toMutableMap()
-        pts.forEach { pt -> newMap[pt] = value }
+        val newMap = map + (pt to value)
         return Grid(newMap)
     }
 
