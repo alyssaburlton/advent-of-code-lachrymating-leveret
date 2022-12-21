@@ -54,18 +54,8 @@ class Day19 : Solver {
         return states.maxOf { it.resources.getOrDefault(OreType.GEODE, 0) }
     }
 
-    private fun takeAllSteps(states: List<OreState>, time: Int): List<OreState> {
-        val nextSteps = states.flatMap(::makeAllChoices).map { gainResources(it, time) }.distinct()
-        return filterOutByMaxGeodeBots(nextSteps)
-    }
-
-    /**
-     * If we're more than 1 geode bot behind the best so far, we're done
-     */
-    private fun filterOutByMaxGeodeBots(states: List<OreState>): List<OreState> {
-        val max = states.maxOf { it.robots.getOrDefault(OreType.GEODE, 0) }
-        return states.filter { it.robots.getOrDefault(OreType.GEODE, 0) >= max - 1 }
-    }
+    private fun takeAllSteps(states: List<OreState>, time: Int) =
+        states.flatMap(::makeAllChoices).map { gainResources(it, time) }.distinct()
 
     private fun makeAllChoices(state: OreState): List<OreState> {
         val options = mutableListOf<OreState>()
@@ -167,7 +157,9 @@ class Day19 : Solver {
         } else Int.MAX_VALUE
 
         val maxRobotsNeeded = minOf(timeRemaining - 1, maxRobotsToBuy)
-        val oreToGenerate = (timeRemaining - 2) * state.robots.getOrDefault(oreType, 0)
+
+        // Take into account how many we'll generate. Offset by 1 more turn than the above, in case we need to buy the very next turn
+        val oreToGenerate = (maxRobotsNeeded - 1) * state.robots.getOrDefault(oreType, 0)
         return maxRobotsNeeded * state.blueprint.maxCostOfEachType.getValue(oreType) - oreToGenerate
     }
 
