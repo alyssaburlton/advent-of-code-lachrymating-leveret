@@ -13,6 +13,23 @@ class Day21 : Solver {
 
     override fun partA() = recursivelySimplify(numericMonkeys, equationMonkeys).first.getValue("root")
 
+    override fun partB(): Any {
+        val numericMonkeysB = numericMonkeys.minus("humn")
+        val replacedRoot = replaceRootOperation(equationMonkeys.getValue("root"))
+        val equationMonkeysB = equationMonkeys.plus("root" to replacedRoot)
+
+        val (_, resolvedEquation) = recursivelySimplify(numericMonkeysB, equationMonkeysB)
+
+        val rootEquation = expandOutEquations(resolvedEquation).getValue("root")
+        return solveEquation(0L, rootEquation)
+    }
+
+    private fun expandOutEquations(equations: Map<String, String>) =
+        equations.keys.fold(equations) { equationsSoFar, monkey ->
+            val equation = equationsSoFar.getValue(monkey)
+            equationsSoFar.mapValues { (_, value) -> value.replace(monkey, "($equation)") }
+        }
+
     private fun recursivelySimplify(
         numericMonkeys: Map<String, Long>,
         equationMonkeys: Map<String, String>,
@@ -22,15 +39,11 @@ class Day21 : Solver {
             return numericMonkeys to equationMonkeys
         }
 
-        val replacementFn =
-            numericMonkeysToApply.entries.fold<Map.Entry<String, Long>, (String) -> String>({ it }) { fn, (monkey, value) ->
-                { str -> fn(str).replace(monkey, value.toString()) }
-            }
+        val replacementFn = generateAllReplacements(numericMonkeysToApply)
 
-        val newEquationMonkeys = equationMonkeys
-            .mapValues { (_, value) -> replacementFn(value) }
-
-        val newNumericMonkeys = newEquationMonkeys.filter { (_, value) -> evaluateExpression(value) != null }
+        val newEquationMonkeys = equationMonkeys.mapValues { (_, value) -> replacementFn(value) }
+        val newNumericMonkeys = newEquationMonkeys
+            .filter { (_, value) -> evaluateExpression(value) != null }
             .mapValues { (_, value) -> evaluateExpression(value)!! }
 
         return recursivelySimplify(
@@ -39,6 +52,11 @@ class Day21 : Solver {
             newNumericMonkeys
         )
     }
+
+    private fun generateAllReplacements(numericMonkeysToApply: Map<String, Long>): (String) -> String =
+        numericMonkeysToApply.entries.fold({ it }) { fn, (monkey, value) ->
+            { str -> fn(str).replace(monkey, value.toString()) }
+        }
 
     private fun evaluateExpression(expression: String): Long? {
         val (thingOne, operator, thingTwo) = expression.split(" ")
@@ -51,21 +69,6 @@ class Day21 : Solver {
             "/" -> numOne / numTwo
             else -> throw Error("Unknown operation: $operator")
         }
-    }
-
-    override fun partB(): Any {
-        val numericMonkeysB = numericMonkeys.minus("humn")
-        val replacedRoot = replaceRootOperation(equationMonkeys.getValue("root"))
-        val equationMonkeysB = equationMonkeys.plus("root" to replacedRoot)
-
-        val (_, resolvedEquation) = recursivelySimplify(numericMonkeysB, equationMonkeysB)
-
-        val expandedEquations = resolvedEquation.keys.fold(resolvedEquation) { equationsSoFar, monkey ->
-            val equation = equationsSoFar.getValue(monkey)
-            equationsSoFar.mapValues { (_, value) -> value.replace(monkey, "($equation)") }
-        }
-
-        return solveEquation(0L, expandedEquations.getValue("root"))
     }
 
     private fun replaceRootOperation(expression: String): String {
