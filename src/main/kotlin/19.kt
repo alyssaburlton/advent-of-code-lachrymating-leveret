@@ -18,38 +18,39 @@ data class OreState(
     val pendingRobot: OreType?
 )
 
+var maxStatesConsidered = 0
+
 class Day19 : Solver {
     override val day = 19
 
     private val blueprints = readStringList("19").map(::parseBlueprint)
 
-    override fun partA() = blueprints.sumOf {
-        it.id * scoreBlueprint(it, 24)
+    override fun partA(): Any {
+        val result = blueprints.sumOf {
+            it.id * scoreBlueprint(it, 24)
+        }
+
+        println("Max considered: $maxStatesConsidered")
+        maxStatesConsidered = 0
+        return result
     }
 
-    override fun partB() = blueprints.take(3).map { scoreBlueprint(it, 32, true) }.product()
+    override fun partB(): Any {
+        val result = blueprints.take(3).map { scoreBlueprint(it, 32) }.product()
+        println("Max considered: $maxStatesConsidered")
+        return result
+    }
 
-    private fun scoreBlueprint(blueprint: OreBlueprint, maxTime: Int, log: Boolean = false): Int {
-        if (log) println("Scoring blueprint ${blueprint.id}...")
+    private fun scoreBlueprint(blueprint: OreBlueprint, maxTime: Int): Int {
         val state = OreState(blueprint, OreType.values().associateWith { 0 }, mapOf(OreType.ORE to 1), null)
         var states = listOf(state)
         var timeRemaining = maxTime
         while (timeRemaining > 0) {
             states = takeAllSteps(states, timeRemaining)
-            if (log) println(
-                "$timeRemaining: ${states.size}, max geodes: ${
-                    states.maxOf {
-                        it.resources.getOrDefault(
-                            OreType.GEODE,
-                            0
-                        )
-                    }
-                }"
-            )
+            maxStatesConsidered = maxOf(maxStatesConsidered, states.size)
+
             timeRemaining--
         }
-
-        if (log) println()
 
         return states.maxOf { it.resources.getOrDefault(OreType.GEODE, 0) }
     }
