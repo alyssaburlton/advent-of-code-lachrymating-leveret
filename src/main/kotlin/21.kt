@@ -1,7 +1,9 @@
 class Day21 : Solver {
     override val day = 21
 
-    private val monkeyPairs = readStringList("21").map(::parseMonkey)
+    private val input = readStringList("21")
+    private val numericMonkeys = input.mapNotNull(::parseNumericMonkey).toMap()
+    private val equationMonkeys = input.mapNotNull(::parseEquationMonkey).toMap()
     private val operationToInverse: Map<String, (Long, Long) -> Long> = mapOf(
         "+" to Long::minus,
         "-" to Long::plus,
@@ -10,76 +12,93 @@ class Day21 : Solver {
     )
 
     override fun partA(): Any {
-        val numericEntries =
-            mutableMapOf(*monkeyPairs.filter { it.second is Long }.toTypedArray()) as MutableMap<String, Long>
-        val stringEntries =
-            mutableMapOf(*monkeyPairs.filter { it.second is String }.toTypedArray()) as MutableMap<String, String>
-        var newNumericEntries = numericEntries.toMap()
+        val (numericMonkeys, _) = recursivelySimplify(numericMonkeys, equationMonkeys)
+        return numericMonkeys["root"]!!
+    }
 
-        while (stringEntries.isNotEmpty()) {
-            newNumericEntries = iterateMaps(stringEntries, numericEntries, newNumericEntries)
+    private fun recursivelySimplify(
+        numericMonkeys: Map<String, Long>,
+        equationMonkeys: Map<String, String>,
+        numericMonkeysToApply: Map<String, Long> = numericMonkeys
+    ): Pair<Map<String, Long>, Map<String, String>> {
+        if (numericMonkeysToApply.isEmpty()) {
+            return numericMonkeys to equationMonkeys
         }
 
-        return numericEntries["root"]!!
+        val replacementFn =
+            numericMonkeysToApply.entries.fold<Map.Entry<String, Long>, (String) -> String>({ it }) { fn, (monkey, value) ->
+                { str -> fn(str).replace(monkey, value.toString()) }
+            }
+
+        val newEquationMonkeys = equationMonkeys
+            .mapValues { (_, value) -> replacementFn(value) }
+
+        val newNumericMonkeys = newEquationMonkeys.mapValues { (_, value) -> evaluateExpression(value) }
+            .filterValues { it != null } as Map<String, Long>
+
+        return recursivelySimplify(
+            numericMonkeys + newNumericMonkeys,
+            newEquationMonkeys - newNumericMonkeys.keys,
+            newNumericMonkeys
+        )
+    }
+
+    private fun evaluateExpression(expression: String): Long? {
+        val (thingOne, operator, thingTwo) = expression.split(" ")
+        val numOne = thingOne.toLongOrNull() ?: return null
+        val numTwo = thingTwo.toLongOrNull() ?: return null
+        return when (operator) {
+            "+" -> numOne + numTwo
+            "-" -> numOne - numTwo
+            "*" -> numOne * numTwo
+            "/" -> numOne / numTwo
+            else -> throw Error("Unknown operation: $operator")
+        }
     }
 
     override fun partB(): Any {
-        val numericEntries =
-            mutableMapOf(*monkeyPairs.filter { it.second is Long }.toTypedArray()) as MutableMap<String, Long>
-        numericEntries.remove("humn")
+        val numericMonkeysB = numericMonkeys.minus("humn")
+        val replacedRoot = replaceRootOperation(equationMonkeys.getValue("root"))
+        val equationMonkeysB = equationMonkeys.plus("root" to replacedRoot)
 
-        val stringEntries =
-            mutableMapOf(*monkeyPairs.filter { it.second is String }.toTypedArray()) as MutableMap<String, String>
-        var newNumericEntries = numericEntries.toMap()
+        val (_, resolvedEquation) = recursivelySimplify(numericMonkeysB, equationMonkeysB)
 
-        val rootEntry = stringEntries.remove("root")!!
-        val (rootFirst, _, rootSecond) = rootEntry.split(" ")
 
-        while (newNumericEntries.isNotEmpty()) {
-            newNumericEntries = iterateMaps(stringEntries, numericEntries, newNumericEntries)
+        val expandedEquations = resolvedEquation.keys.fold(resolvedEquation) { equationsSoFar, monkey ->
+            val equation = equationsSoFar.getValue(monkey)
+            equationsSoFar.mapValues { (_, value) -> value.replace(monkey, "($equation)") }
         }
 
-        val rootEntries = listOf(rootFirst to numericEntries[rootFirst], rootSecond to numericEntries[rootSecond])
-        val targetValue = rootEntries.firstNotNullOf { it.second }
-        val targetVariable = rootEntries.first { it.second == null }.first
+        return solveEquation(0L, expandedEquations["root"]!!)
+    }
 
-        println("Trying to get $targetVariable = $targetValue")
-
-        stringEntries.forEach { (monkey, replacementValue) ->
-            stringEntries.forEach { (key, value) ->
-                stringEntries[key] = value.replace(monkey, "($replacementValue)")
-            }
-        }
-
-        println()
-        println()
-        return solveEquation(targetValue, stringEntries[targetVariable]!!)
+    private fun replaceRootOperation(expression: String): String {
+        val (thingOne, _, thingTwo) = expression.split(" ")
+        return "$thingOne - $thingTwo"
     }
 
     private fun solveEquation(lhs: Long, rhs: String): Long {
         if (!rhs.contains("(")) {
             val (leftValue, operation, rightValue) = rhs.split(" ")
-            if (leftValue.toLongOrNull() == null) {
-                return reverseOperationFromTheRight(lhs, operation, rightValue.toLong())
+            return if (leftValue.toLongOrNull() == null) {
+                reverseOperationFromTheRight(lhs, operation, rightValue.toLong())
             } else {
-                return reverseOperationFromTheLeft(lhs, operation, leftValue.toLong())
+                reverseOperationFromTheLeft(lhs, operation, leftValue.toLong())
             }
         }
 
-        println("$lhs = $rhs")
-
-        if (rhs.startsWith("(")) {
+        return if (rhs.startsWith("(")) {
             val substring = rhs.substringAfterLast(") ")
             val (operation, number) = substring.split(" ")
             val newLhs = reverseOperationFromTheRight(lhs, operation, number.toLong())
             val newRhs = rhs.removePrefix("(").substringBeforeLast(")")
-            return solveEquation(newLhs, newRhs)
+            solveEquation(newLhs, newRhs)
         } else if (rhs.endsWith(")")) {
             val substring = rhs.substringBefore(" (")
             val (number, operation) = substring.split(" ")
             val newLhs = reverseOperationFromTheLeft(lhs, operation, number.toLong())
             val newRhs = rhs.substringAfter("(").removeSuffix(")")
-            return solveEquation(newLhs, newRhs)
+            solveEquation(newLhs, newRhs)
         } else {
             throw Error("Argh")
         }
@@ -99,56 +118,18 @@ class Day21 : Solver {
         return inverseOp(currentValue, operand)
     }
 
-    private fun iterateMaps(
-        stringMap: MutableMap<String, String>,
-        numericMap: MutableMap<String, Long>,
-        newNumerics: Map<String, Long>
-    ): Map<String, Long> {
-        stringMap.keys.forEach { key ->
-            newNumerics.forEach { (monkey, number) ->
-                val newValue = stringMap.getValue(key).replace(monkey, number.toString())
-                stringMap[key] = newValue
-            }
-        }
-
-        val nowNumeric: Map<String, Long> = stringMap
-            .filter {
-                val (first, _, second) = it.value.split(" ")
-                first.toLongOrNull() != null && second.toLongOrNull() != null
-            }
-            .mapValues { (_, value) -> evaluateExpression(value) }
-
-
-        nowNumeric.keys.forEach {
-            stringMap.remove(it)
-        }
-
-        numericMap.putAll(nowNumeric)
-        return nowNumeric
-    }
-
-    private fun evaluateExpression(expression: String): Long {
-        return if (expression.contains(" - ")) {
-            val (thingOne, thingTwo) = expression.split(" - ")
-            thingOne.toLong() - thingTwo.toLong()
-        } else if (expression.contains(" + ")) {
-            val (thingOne, thingTwo) = expression.split(" + ")
-            thingOne.toLong() + thingTwo.toLong()
-        } else if (expression.contains(" * ")) {
-            val (thingOne, thingTwo) = expression.split(" * ")
-            thingOne.toLong() * thingTwo.toLong()
-        } else {
-            val (thingOne, thingTwo) = expression.split(" / ")
-            thingOne.toLong() / thingTwo.toLong()
-        }
-    }
-
-    private fun parseMonkey(inputLine: String): Pair<String, Any> {
+    private fun parseEquationMonkey(inputLine: String): Pair<String, String>? {
         val (monkey, rest) = inputLine.split(": ")
         if (rest.toLongOrNull() != null) {
-            return monkey to rest.toLong()
-        } else {
-            return monkey to rest
+            return null
         }
+
+        return monkey to rest
+    }
+
+    private fun parseNumericMonkey(inputLine: String): Pair<String, Long>? {
+        val (monkey, rest) = inputLine.split(": ")
+        rest.toLongOrNull() ?: return null
+        return monkey to rest.toLong()
     }
 }
