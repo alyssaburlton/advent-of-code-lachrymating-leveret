@@ -57,6 +57,8 @@ class Day19 : Solver {
             timeRemaining--
         }
 
+        // println()
+
         return states.maxOf { it.resources.getOrDefault(OreType.GEODE, 0) }
     }
 
@@ -84,8 +86,8 @@ class Day19 : Solver {
     private fun makeAllChoices(state: OreState): List<OreState> {
         val options = mutableListOf<OreState>()
         val affordable = OreType.values().filter { type ->
-            shouldBuyRobot(state, type, state.blueprint.robotCosts.getValue(type))
-        }
+            shouldBuyRobot(state, type)
+        }.toSet()
 
         if (affordable.contains(OreType.GEODE)) {
             options.add(buyRobot(state, OreType.GEODE))
@@ -95,24 +97,45 @@ class Day19 : Solver {
             }
         }
 
-        if (!affordable.contains(OreType.GEODE)) {
+        if (shouldConsiderDoingNothing(state, affordable)) {
             options.add(state)
         }
 
         return options
     }
 
-    private fun shouldBuyRobot(state: OreState, type: OreType, costs: Map<OreType, Int>): Boolean {
-        val currentCount = state.robots.getOrDefault(type, 0)
-        val potentiallyNeed = state.blueprint.maxCostOfEachType.getValue(type)
+    private fun shouldConsiderDoingNothing(state: OreState, affordable: Set<OreType>): Boolean {
+        if (affordable.contains(OreType.GEODE)) {
+            return false
+        }
 
-        val shouldGet = type == OreType.GEODE || currentCount < potentiallyNeed
+        return affordable.isEmpty() || (affordableNextTurn(state) - affordable).isNotEmpty()
+    }
 
+    private fun affordableNextTurn(state: OreState): List<OreType> {
+        val nextTurnIfDoNothing = gainResources(state, 50)
+        return OreType.values().filter { type ->
+            shouldBuyRobot(nextTurnIfDoNothing, type)
+        }
+    }
+
+    private fun shouldBuyRobot(state: OreState, type: OreType): Boolean {
+        val costs = state.blueprint.robotCosts.getValue(type)
         val canAfford = costs.all { (oreType, amount) ->
             state.resources.getOrDefault(oreType, 0) >= amount
         }
 
-        return canAfford && shouldGet
+        return canAfford && getMaxRobotsWorthBuying(state, type) > 0
+    }
+
+    private fun getMaxRobotsWorthBuying(state: OreState, robotType: OreType): Int {
+        if (robotType == OreType.GEODE) {
+            return 50
+        }
+
+        val currentCount = state.robots.getOrDefault(robotType, 0)
+        val potentiallyNeed = state.blueprint.maxCostOfEachType.getValue(robotType)
+        return potentiallyNeed - currentCount
     }
 
     private fun buyRobot(state: OreState, type: OreType): OreState {
@@ -133,12 +156,8 @@ class Day19 : Solver {
             } else amount
 
             // Throw away resources that we definitely don't need, so we can .distinct() out more "equivalent" states
-            if (oreType != OreType.GEODE) {
-                val maxNeeded = (timeRemaining - 1) * state.blueprint.maxCostOfEachType[oreType]!!
-                minOf(newAmount, maxNeeded)
-            } else {
-                newAmount
-            }
+            val maxNeeded = calculateMaxNeeded(state, oreType, timeRemaining)
+            minOf(newAmount, maxNeeded)
         }
 
         val pendingBot = state.pendingRobot
@@ -148,6 +167,21 @@ class Day19 : Solver {
         }
 
         return state.copy(pendingRobot = null, resources = newResources, robots = newRobots)
+    }
+
+    private fun calculateMaxNeeded(state: OreState, oreType: OreType, timeRemaining: Int): Int {
+        if (oreType == OreType.GEODE) {
+            return Int.MAX_VALUE
+        }
+
+        // Clay is only needed to produce Obsidian robots, and there's a fixed max of these that we need. So if we have
+        // more turns remaining than that, we can bound the max clay sooner.
+        val maxRobotsToBuy = if (oreType == OreType.CLAY) {
+            getMaxRobotsWorthBuying(state, OreType.OBSIDIAN)
+        } else Int.MAX_VALUE
+
+        val maxTurnsToBuyRobots = minOf(timeRemaining - 1, maxRobotsToBuy)
+        return maxTurnsToBuyRobots * state.blueprint.maxCostOfEachType.getValue(oreType)
     }
 
     private fun parseBlueprint(blueprintString: String): OreBlueprint {
