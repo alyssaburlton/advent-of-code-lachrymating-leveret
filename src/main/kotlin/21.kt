@@ -2,6 +2,12 @@ class Day21 : Solver {
     override val day = 21
 
     private val monkeyPairs = readStringList("21").map(::parseMonkey)
+    private val operationToInverse: Map<String, (Long, Long) -> Long> = mapOf(
+        "+" to Long::minus,
+        "-" to Long::plus,
+        "*" to Long::div,
+        "/" to Long::times
+    )
 
     override fun partA(): Any {
         val numericEntries =
@@ -27,54 +33,70 @@ class Day21 : Solver {
         var newNumericEntries = numericEntries.toMap()
 
         val rootEntry = stringEntries.remove("root")!!
-        println(rootEntry)
         val (rootFirst, _, rootSecond) = rootEntry.split(" ")
 
         while (newNumericEntries.isNotEmpty()) {
             newNumericEntries = iterateMaps(stringEntries, numericEntries, newNumericEntries)
         }
 
-        println("$rootFirst = " + numericEntries[rootFirst])
-        println("$rootSecond = " + numericEntries[rootSecond])
-        println()
+        val rootEntries = listOf(rootFirst to numericEntries[rootFirst], rootSecond to numericEntries[rootSecond])
+        val targetValue = rootEntries.firstNotNullOf { it.second }
+        val targetVariable = rootEntries.first { it.second == null }.first
 
-        println(numericEntries.size)
-        println()
-        println(stringEntries)
+        println("Trying to get $targetVariable = $targetValue")
 
-        // Target is to get prrg to equal 28379346560301
         stringEntries.forEach { (monkey, replacementValue) ->
             stringEntries.forEach { (key, value) ->
-                val newValue =
-                    value.replace("$monkey ", "($replacementValue)").replace(" $monkey", "($replacementValue)")
-                stringEntries[key] = newValue
+                stringEntries[key] = value.replace(monkey, "($replacementValue)")
             }
         }
 
         println()
         println()
-        println("${numericEntries[rootSecond]}=${stringEntries["prrg"]}")
-//
-//        println()
-//        println(stringEntries["tmgh"])
+        return solveEquation(targetValue, stringEntries[targetVariable]!!)
+    }
 
-        //stringEntries.forEach { println(it) }
+    private fun solveEquation(lhs: Long, rhs: String): Long {
+        if (!rhs.contains("(")) {
+            val (leftValue, operation, rightValue) = rhs.split(" ")
+            if (leftValue.toLongOrNull() == null) {
+                return reverseOperationFromTheRight(lhs, operation, rightValue.toLong())
+            } else {
+                return reverseOperationFromTheLeft(lhs, operation, leftValue.toLong())
+            }
+        }
 
-//        (1..1000000L).forEach {
-//            val loopStringEntries = stringEntries.toMutableMap()
-//            val loopNumericEntries = numericEntries.toMutableMap()
-//            newNumericEntries = mapOf("humn" to it)
-//            while (newNumericEntries.isNotEmpty()) {
-//                newNumericEntries = iterateMaps(loopStringEntries, loopNumericEntries, newNumericEntries)
-//                if (newNumericEntries.contains("prrg")) {
-//                    if (newNumericEntries["prrg"] == 28379346560301L) {
-//                        return it
-//                    }
-//                }
-//            }
-//        }
+        println("$lhs = $rhs")
 
-        return ""
+        if (rhs.startsWith("(")) {
+            val substring = rhs.substringAfterLast(") ")
+            val (operation, number) = substring.split(" ")
+            val newLhs = reverseOperationFromTheRight(lhs, operation, number.toLong())
+            val newRhs = rhs.removePrefix("(").substringBeforeLast(")")
+            return solveEquation(newLhs, newRhs)
+        } else if (rhs.endsWith(")")) {
+            val substring = rhs.substringBefore(" (")
+            val (number, operation) = substring.split(" ")
+            val newLhs = reverseOperationFromTheLeft(lhs, operation, number.toLong())
+            val newRhs = rhs.substringAfter("(").removeSuffix(")")
+            return solveEquation(newLhs, newRhs)
+        } else {
+            throw Error("Argh")
+        }
+    }
+
+    private fun reverseOperationFromTheLeft(currentValue: Long, operation: String, operand: Long): Long {
+        if (operation == "/") {
+            throw Error("Cannot deal with $operation on LHS")
+        }
+
+        val inverseOp = operationToInverse.getValue(operation)
+        return if (operation == "-") inverseOp(-1 * currentValue, operand) else inverseOp(currentValue, operand)
+    }
+
+    private fun reverseOperationFromTheRight(currentValue: Long, operation: String, operand: Long): Long {
+        val inverseOp = operationToInverse.getValue(operation)
+        return inverseOp(currentValue, operand)
     }
 
     private fun iterateMaps(
