@@ -18,33 +18,16 @@ data class OreState(
     val pendingRobot: OreType?
 )
 
-fun main() {
-    Day19().scoreProblemBlueprint()
-}
-
 class Day19 : Solver {
     override val day = 19
 
     private val blueprints = readStringList("19").map(::parseBlueprint)
 
-    fun scoreProblemBlueprint() {
-        val timer = DurationTimer()
-        val result = scoreBlueprint(blueprints.last(), 24)
-        println("${timer.duration()}ms")
-        println(result)
+    override fun partA() = blueprints.sumOf {
+        it.id * scoreBlueprint(it, 24)
     }
 
-    override fun partA(): Any {
-        return blueprints.sumOf {
-            it.id * scoreBlueprint(it, 24)
-        }
-    }
-
-    override fun partB(): Any {
-        val results = blueprints.take(3).map { scoreBlueprint(it, 32) }
-        println(results)
-        return results.product()
-    }
+    override fun partB() = blueprints.take(3).map { scoreBlueprint(it, 32) }.product()
 
     private fun scoreBlueprint(blueprint: OreBlueprint, maxTime: Int): Int {
         // println("Scoring blueprint ${blueprint.id}...")

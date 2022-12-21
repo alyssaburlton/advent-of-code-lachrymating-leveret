@@ -100,10 +100,10 @@ class AnswersTest {
         Day18().testDay(3530, 2000)
     }
 
-//    @Test
-//    fun `Day 19`() {
-//        Day19().testDay(1092, 3542)
-//    }
+    @Test
+    fun `Day 19`() {
+        Day19().testDay(1092, 3542)
+    }
 
     @Test
     fun `Day 20`() {
