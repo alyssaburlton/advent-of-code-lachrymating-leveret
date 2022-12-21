@@ -95,7 +95,7 @@ class Day19 : Solver {
 
         return affordable.isEmpty() || !oreIsPlentiful(state, affordable)
     }
-    
+
     private fun oreIsPlentiful(state: OreState, affordable: Set<OreType>): Boolean {
         val minCostThisTurn = affordable.minOf { state.blueprint.robotCosts[it]!![OreType.ORE]!! }
 
@@ -166,8 +166,9 @@ class Day19 : Solver {
             getMaxRobotsWorthBuying(state, OreType.OBSIDIAN)
         } else Int.MAX_VALUE
 
-        val maxTurnsToBuyRobots = minOf(timeRemaining - 1, maxRobotsToBuy)
-        return maxTurnsToBuyRobots * state.blueprint.maxCostOfEachType.getValue(oreType)
+        val maxRobotsNeeded = minOf(timeRemaining - 1, maxRobotsToBuy)
+        val oreToGenerate = (timeRemaining - 2) * state.robots.getOrDefault(oreType, 0)
+        return maxRobotsNeeded * state.blueprint.maxCostOfEachType.getValue(oreType) - oreToGenerate
     }
 
     private fun parseBlueprint(blueprintString: String): OreBlueprint {
