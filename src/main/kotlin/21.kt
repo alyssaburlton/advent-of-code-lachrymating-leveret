@@ -18,6 +18,62 @@ class Day21 : Solver {
     }
 
     override fun partB(): Any {
+        val numericEntries =
+            mutableMapOf(*monkeyPairs.filter { it.second is Long }.toTypedArray()) as MutableMap<String, Long>
+        numericEntries.remove("humn")
+
+        val stringEntries =
+            mutableMapOf(*monkeyPairs.filter { it.second is String }.toTypedArray()) as MutableMap<String, String>
+        var newNumericEntries = numericEntries.toMap()
+
+        val rootEntry = stringEntries.remove("root")!!
+        println(rootEntry)
+        val (rootFirst, _, rootSecond) = rootEntry.split(" ")
+
+        while (newNumericEntries.isNotEmpty()) {
+            newNumericEntries = iterateMaps(stringEntries, numericEntries, newNumericEntries)
+        }
+
+        println("$rootFirst = " + numericEntries[rootFirst])
+        println("$rootSecond = " + numericEntries[rootSecond])
+        println()
+
+        println(numericEntries.size)
+        println()
+        println(stringEntries)
+
+        // Target is to get prrg to equal 28379346560301
+        stringEntries.forEach { (monkey, replacementValue) ->
+            stringEntries.forEach { (key, value) ->
+                val newValue =
+                    value.replace("$monkey ", "($replacementValue)").replace(" $monkey", "($replacementValue)")
+                stringEntries[key] = newValue
+            }
+        }
+
+        println()
+        println()
+        println("${numericEntries[rootSecond]}=${stringEntries["prrg"]}")
+//
+//        println()
+//        println(stringEntries["tmgh"])
+
+        //stringEntries.forEach { println(it) }
+
+//        (1..1000000L).forEach {
+//            val loopStringEntries = stringEntries.toMutableMap()
+//            val loopNumericEntries = numericEntries.toMutableMap()
+//            newNumericEntries = mapOf("humn" to it)
+//            while (newNumericEntries.isNotEmpty()) {
+//                newNumericEntries = iterateMaps(loopStringEntries, loopNumericEntries, newNumericEntries)
+//                if (newNumericEntries.contains("prrg")) {
+//                    if (newNumericEntries["prrg"] == 28379346560301L) {
+//                        return it
+//                    }
+//                }
+//            }
+//        }
+
         return ""
     }
 
