@@ -27,35 +27,36 @@ class Day19 : Solver {
         it.id * scoreBlueprint(it, 24)
     }
 
-    override fun partB() = blueprints.take(3).map { scoreBlueprint(it, 32) }.product()
+    override fun partB() = blueprints.take(3).map { scoreBlueprint(it, 32, true) }.product()
 
-    private fun scoreBlueprint(blueprint: OreBlueprint, maxTime: Int): Int {
-        // println("Scoring blueprint ${blueprint.id}...")
+    private fun scoreBlueprint(blueprint: OreBlueprint, maxTime: Int, log: Boolean = false): Int {
+        if (log) println("Scoring blueprint ${blueprint.id}...")
         val state = OreState(blueprint, OreType.values().associateWith { 0 }, mapOf(OreType.ORE to 1), null)
         var states = listOf(state)
         var timeRemaining = maxTime
         while (timeRemaining > 0) {
             states = takeAllSteps(states, timeRemaining)
-            // println("$timeRemaining: ${states.size}")
+            if (log) println(
+                "$timeRemaining: ${states.size}, max geodes: ${
+                    states.maxOf {
+                        it.resources.getOrDefault(
+                            OreType.GEODE,
+                            0
+                        )
+                    }
+                }"
+            )
             timeRemaining--
         }
 
-        // println()
+        if (log) println()
 
         return states.maxOf { it.resources.getOrDefault(OreType.GEODE, 0) }
     }
 
     private fun takeAllSteps(states: List<OreState>, time: Int): List<OreState> {
         val nextSteps = states.flatMap(::makeAllChoices).map { gainResources(it, time) }.distinct()
-        return filterOutByMaxGeodeBots(filterOutByMaxObsidianBots(nextSteps))
-    }
-
-    /**
-     * If we're more than 3 obsidian bot behind the best so far, we're done
-     */
-    private fun filterOutByMaxObsidianBots(states: List<OreState>): List<OreState> {
-        val max = states.maxOf { it.robots.getOrDefault(OreType.OBSIDIAN, 0) }
-        return states.filter { it.robots.getOrDefault(OreType.OBSIDIAN, 0) >= max - 3 }
+        return filterOutByMaxGeodeBots(nextSteps)
     }
 
     /**
@@ -92,14 +93,16 @@ class Day19 : Solver {
             return false
         }
 
-        return affordable.isEmpty() || (affordableNextTurn(state) - affordable).isNotEmpty()
+        return affordable.isEmpty() || !oreIsPlentiful(state, affordable)
     }
+    
+    private fun oreIsPlentiful(state: OreState, affordable: Set<OreType>): Boolean {
+        val minCostThisTurn = affordable.minOf { state.blueprint.robotCosts[it]!![OreType.ORE]!! }
 
-    private fun affordableNextTurn(state: OreState): List<OreType> {
-        val nextTurnIfDoNothing = gainResources(state, 50)
-        return OreType.values().filter { type ->
-            shouldBuyRobot(nextTurnIfDoNothing, type)
-        }
+        val currentOre = state.resources.getValue(OreType.ORE)
+        val maxCost = state.blueprint.maxCostOfEachType.getValue(OreType.ORE)
+        val production = state.robots.getValue(OreType.ORE)
+        return currentOre - minCostThisTurn + production >= maxCost
     }
 
     private fun shouldBuyRobot(state: OreState, type: OreType): Boolean {
