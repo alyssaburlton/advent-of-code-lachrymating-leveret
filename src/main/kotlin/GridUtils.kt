@@ -34,16 +34,16 @@ fun readStringGrid(filename: String): Grid<String> {
     return parseGrid(list)
 }
 
-fun parseGrid(gridLines: List<String>): Grid<String> {
+fun parseGrid(gridLines: List<String>, defaultRowValue: Char = ' '): Grid<String> {
     val rowLengths = gridLines.map { it.length }
-    if (rowLengths.distinct().size != 1) {
-        throw Error("Uneven row sizes in grid: $rowLengths")
-    }
+//    if (rowLengths.distinct().size != 1) {
+//        throw Error("Uneven row sizes in grid: $rowLengths")
+//    }
 
-    val rowLength = rowLengths.first()
+    val rowLength = rowLengths.max()
     val pairs = (0 until rowLength).flatMap { x ->
         gridLines.indices.map { y ->
-            Point(x, y) to gridLines[y][x].toString()
+            Point(x, y) to gridLines[y].getOrElse(x) { defaultRowValue }.toString()
         }
     }
 
