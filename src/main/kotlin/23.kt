@@ -4,42 +4,36 @@ class Day23 : Solver {
     private val input = readStringGrid("23")
 
     override fun partA(): Any {
-//        val elves = input.map.filter { it.value == "#" }.keys.toMutableSet()
-//
-//        input.print()
-//
-//        repeat(10) { round ->
-//            // println()
-//            // println()
-//            val proposedPositions = mutableMapOf<Point, MutableList<Point>>()
-//            elves.forEach { elf ->
-//                val proposal = proposePosition(elf, elves, round)
-//
-//                if (proposal != null) {
-//                    val current = proposedPositions.getOrPut(proposal, ::mutableListOf)
-//                    current.add(elf)
-//                }
-//            }
-//
-//            val validResults = proposedPositions.filter { it.value.size == 1 }
-//            val oldElves = validResults.values.flatten().toSet()
-//            val newElves = validResults.keys
-//
-//            elves.removeAll(oldElves)
-//            elves.addAll(newElves)
-//
-//            // val map = elves.associateWith { "#" }
-//            // Grid(map).print()
-//        }
-//
-//        println(elves)
-//
-//
-//        val xBounds = (elves.maxOf { it.x } - elves.minOf { it.x }) + 1
-//        val yBounds = (elves.maxOf { it.y } - elves.minOf { it.y }) + 1
-//
-//        return (xBounds * yBounds) - elves.size
-        return ""
+        var elves = input.map.filter { it.value == "#" }.keys.toSet()
+        val originalSize = elves.size
+
+        repeat(10) { round ->
+            val proposedPositions = mutableMapOf<Point, MutableList<Point>>()
+            val elvesNotMoved = mutableSetOf<Point>()
+            elves.forEach { elf ->
+                val proposal = proposePosition(elf, elves.filter { it.stepDistance(elf) <= 2 }.toSet(), round)
+
+                if (proposal != null) {
+                    val current = proposedPositions.getOrPut(proposal, ::mutableListOf)
+                    current.add(elf)
+                } else {
+                    elvesNotMoved.add(elf)
+                }
+            }
+
+            val otherElvesNotMoved = proposedPositions.filter { it.value.size > 1 }.values.flatten().toSet()
+            val validResults = proposedPositions.filter { it.value.size == 1 }
+            val newElves = validResults.keys
+
+            elves = elvesNotMoved + otherElvesNotMoved + newElves
+            check(elves.size == originalSize)
+        }
+
+
+        val xBounds = (elves.maxOf { it.x } - elves.minOf { it.x }) + 1
+        val yBounds = (elves.maxOf { it.y } - elves.minOf { it.y }) + 1
+
+        return (xBounds * yBounds) - elves.size
     }
 
     private fun proposePosition(elf: Point, elves: Set<Point>, roundNumber: Int): Point? {

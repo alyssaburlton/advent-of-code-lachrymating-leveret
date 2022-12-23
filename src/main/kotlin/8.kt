@@ -19,13 +19,12 @@ class Day8 : Solver {
         val row = grid.rows[point.y]
         val col = grid.columns[point.x]
 
-//        return listOf(
-//            row.subList(point.x + 1, grid.xMax + 1),
-//            row.subList(0, point.x).reversed(),
-//            col.subList(point.y + 1, grid.yMax + 1),
-//            col.subList(0, point.y).reversed(),
-//        )
-        return emptyList()
+        return listOf(
+            row.subList(point.x + 1, grid.xMax + 1),
+            row.subList(0, point.x).reversed(),
+            col.subList(point.y + 1, grid.yMax + 1),
+            col.subList(0, point.y).reversed(),
+        )
     }
 
     private fun scenicScore(myHeight: Int, directionTrees: List<Int>): Int {

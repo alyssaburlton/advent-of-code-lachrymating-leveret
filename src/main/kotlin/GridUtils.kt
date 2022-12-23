@@ -13,7 +13,7 @@ fun Point3D.neighbours() = listOf(
     Point3D(x, y, z - 1)
 )
 
-fun Point.neighbours() = listOf(
+fun Point.neighbours() = setOf(
     Point(x, y - 1),
     Point(x, y + 1),
     Point(x - 1, y),
@@ -22,7 +22,7 @@ fun Point.neighbours() = listOf(
 
 fun Point.stepDistance(other: Point) = abs(x - other.x) + abs(y - other.y)
 
-fun Point.neighboursWithDiagonals() = neighbours() + listOf(
+fun Point.neighboursWithDiagonals() = neighbours() + setOf(
     Point(x - 1, y - 1),
     Point(x - 1, y + 1),
     Point(x + 1, y - 1),
@@ -34,16 +34,26 @@ fun readStringGrid(filename: String): Grid<String> {
     return parseGrid(list)
 }
 
-fun parseGrid(gridLines: List<String>, defaultRowValue: Char = ' '): Grid<String> {
+fun parsePointMap(lines: List<String>): Map<Point, String> {
+    val pairs = lines.flatMapIndexed { y, line ->
+        line.toCharArray().mapIndexed { x, value ->
+            Point(x, y) to value.toString()
+        }
+    }
+
+    return mapOf(*pairs.toTypedArray())
+}
+
+fun parseGrid(gridLines: List<String>): Grid<String> {
     val rowLengths = gridLines.map { it.length }
-//    if (rowLengths.distinct().size != 1) {
-//        throw Error("Uneven row sizes in grid: $rowLengths")
-//    }
+    if (rowLengths.distinct().size != 1) {
+        throw Error("Uneven row sizes in grid: $rowLengths")
+    }
 
     val rowLength = rowLengths.max()
     val pairs = (0 until rowLength).flatMap { x ->
         gridLines.indices.map { y ->
-            Point(x, y) to gridLines[y].getOrElse(x) { defaultRowValue }.toString()
+            Point(x, y) to gridLines[y][x].toString()
         }
     }
 
@@ -69,7 +79,7 @@ class Grid<T>(val map: Map<Point, T>) {
     }
 
     fun prettyString() = (yMin..yMax).joinToString("\n") { y ->
-        (xMin..xMax).joinToString("") { x -> map.getOrDefault(Point(x, y), ".").toString() }
+        (xMin..xMax).joinToString("") { x -> map.getValue(Point(x, y)).toString() }
     }
 
     fun print() {
@@ -88,14 +98,14 @@ class Grid<T>(val map: Map<Point, T>) {
     private fun computeRows() =
         (yMin..yMax).map { y ->
             (xMin..xMax).map { x ->
-                map.getOrDefault(Point(x, y), ".")
+                map.getValue(Point(x, y))
             }
         }
 
     private fun computeColumns() =
         (xMin..xMax).map { x ->
             (yMin..yMax).map { y ->
-                map.getOrDefault(Point(x, y), ".")
+                map.getValue(Point(x, y))
             }
         }
 }

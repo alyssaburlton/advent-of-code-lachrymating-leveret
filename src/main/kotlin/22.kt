@@ -3,21 +3,13 @@ class Day22 : Solver {
 
     private val input = readGroupedList("22")
     private val instructions = parseInstructions(input[1].only())
-    private val grid = parseGrid(input[0], ' ')
+    private val pointMap = parsePointMap(input[0])
     private val edgeRulesB = buildEdgeRules()
 
-    override fun partA() = ""
-
-    private fun doPartA(): Any {
-        println(instructions)
-        grid.print()
-
-        val startX = grid.map.filter { entry -> entry.key.y == 0 && entry.value == "." }.minOf { it.key.x }
+    override fun partA(): Any {
+        val startX = pointMap.filter { entry -> entry.key.y == 0 && entry.value == "." }.minOf { it.key.x }
         val startPos = Point(startX, 0)
-        println(startPos)
 
-        println(instructions)
-        println()
         var currentPos = startPos
         var currentDirection = Point(1, 0)
         val instructionsToGo = instructions.toMutableList()
@@ -42,15 +34,9 @@ class Day22 : Solver {
     }
 
     override fun partB(): Any {
-        println(instructions)
-        grid.print()
-
-        val startX = grid.map.filter { entry -> entry.key.y == 0 && entry.value == "." }.minOf { it.key.x }
+        val startX = pointMap.filter { entry -> entry.key.y == 0 && entry.value == "." }.minOf { it.key.x }
         val startPos = Point(startX, 0)
-        println(startPos)
 
-        println(instructions)
-        println()
         var currentPos = startPos
         var currentDirection = Point(1, 0)
         val instructionsToGo = instructions.toMutableList()
@@ -85,7 +71,7 @@ class Day22 : Solver {
         while (!hitWall && amountMoved < amount) {
             var nextPos = Point(pos.x + direction.x, pos.y + direction.y)
             var currentDirection = direction
-            val value = grid.map[nextPos]
+            val value = pointMap[nextPos]
             if (value == null || value == " ") {
                 // wrap around
                 val wrapResult = wrapAroundB(pos, direction)
@@ -93,7 +79,7 @@ class Day22 : Solver {
                 currentDirection = wrapResult.second
             }
 
-            if (grid.map[nextPos] == "#") {
+            if (pointMap[nextPos] == "#") {
                 hitWall = true
             } else {
                 pos = nextPos
@@ -111,13 +97,13 @@ class Day22 : Solver {
         var pos = startPos
         while (!hitWall && amountMoved < amount) {
             var nextPos = Point(pos.x + direction.x, pos.y + direction.y)
-            val value = grid.map[nextPos]
+            val value = pointMap[nextPos]
             if (value == null || value == " ") {
                 // wrap around
                 nextPos = wrapAround(nextPos, direction)
             }
 
-            if (grid.map[nextPos] == "#") {
+            if (pointMap[nextPos] == "#") {
                 hitWall = true
             } else {
                 pos = nextPos
@@ -130,16 +116,16 @@ class Day22 : Solver {
 
     private fun wrapAround(currentPos: Point, direction: Point): Point {
         return if (direction == Point(1, 0)) {
-            val x = grid.map.filter { it.key.y == currentPos.y && it.value != " " }.keys.minOf { it.x }
+            val x = pointMap.filter { it.key.y == currentPos.y && it.value != " " }.keys.minOf { it.x }
             Point(x, currentPos.y)
         } else if (direction == Point(-1, 0)) {
-            val x = grid.map.filter { it.key.y == currentPos.y && it.value != " " }.keys.maxOf { it.x }
+            val x = pointMap.filter { it.key.y == currentPos.y && it.value != " " }.keys.maxOf { it.x }
             Point(x, currentPos.y)
         } else if (direction == Point(0, 1)) {
-            val y = grid.map.filter { it.key.x == currentPos.x && it.value != " " }.keys.minOf { it.y }
+            val y = pointMap.filter { it.key.x == currentPos.x && it.value != " " }.keys.minOf { it.y }
             Point(currentPos.x, y)
         } else if (direction == Point(0, -1)) {
-            val y = grid.map.filter { it.key.x == currentPos.x && it.value != " " }.keys.maxOf { it.y }
+            val y = pointMap.filter { it.key.x == currentPos.x && it.value != " " }.keys.maxOf { it.y }
             Point(currentPos.x, y)
         } else {
             throw Error("What direction: $direction")
@@ -188,11 +174,11 @@ class Day22 : Solver {
 
     private fun buildBlueSquiggleRule(): WrapRule {
         val topEdgeKeys =
-            grid.map.filter { entry -> entry.key.y == 149 && entry.key.x in (50..99) && entry.value != " " }.keys.sortedBy { it.x }
+            pointMap.filter { entry -> entry.key.y == 149 && entry.key.x in (50..99) && entry.value != " " }.keys.sortedBy { it.x }
         check(topEdgeKeys.size == 50)
 
         val rightEdgeKeys =
-            grid.map.filter { entry -> entry.key.x == 49 && entry.key.y in (150..199) && entry.value != " " }.keys.sortedBy { it.y }
+            pointMap.filter { entry -> entry.key.x == 49 && entry.key.y in (150..199) && entry.value != " " }.keys.sortedBy { it.y }
         check(rightEdgeKeys.size == 50)
 
         val pairs = topEdgeKeys zip rightEdgeKeys
@@ -202,11 +188,11 @@ class Day22 : Solver {
 
     private fun buildGreenSquiggleRule(): WrapRule {
         val leftEdgeKeys =
-            grid.map.filter { entry -> entry.key.x == 50 && entry.key.y in (50..99) && entry.value != " " }.keys.sortedBy { it.y }
+            pointMap.filter { entry -> entry.key.x == 50 && entry.key.y in (50..99) && entry.value != " " }.keys.sortedBy { it.y }
         check(leftEdgeKeys.size == 50)
 
         val topEdgeKeys =
-            grid.map.filter { entry -> entry.key.y == 100 && entry.key.x in (0..49) && entry.value != " " }.keys.sortedBy { it.x }
+            pointMap.filter { entry -> entry.key.y == 100 && entry.key.x in (0..49) && entry.value != " " }.keys.sortedBy { it.x }
         check(topEdgeKeys.size == 50)
 
         val pairs = leftEdgeKeys zip topEdgeKeys
@@ -217,11 +203,11 @@ class Day22 : Solver {
 
     private fun buildBlueLineRule(): WrapRule {
         val topLeftEdgeKeys =
-            grid.map.filter { entry -> entry.key.x == 50 && entry.key.y in (0..49) && entry.value != " " }.keys.sortedBy { it.y }
+            pointMap.filter { entry -> entry.key.x == 50 && entry.key.y in (0..49) && entry.value != " " }.keys.sortedBy { it.y }
         check(topLeftEdgeKeys.size == 50)
 
         val bottomLeftEdgeKeys =
-            grid.map.filter { entry -> entry.key.x == 0 && entry.key.y in (100..149) && entry.value != " " }.keys.sortedBy { -it.y }
+            pointMap.filter { entry -> entry.key.x == 0 && entry.key.y in (100..149) && entry.value != " " }.keys.sortedBy { -it.y }
         check(bottomLeftEdgeKeys.size == 50)
 
         val pairs = topLeftEdgeKeys zip bottomLeftEdgeKeys
@@ -232,11 +218,11 @@ class Day22 : Solver {
 
     private fun buildRedLineRule(): WrapRule {
         val topEdgeKeys =
-            grid.map.filter { entry -> entry.key.y == 0 && entry.key.x in (100..149) && entry.value != " " }.keys.sortedBy { it.x }
+            pointMap.filter { entry -> entry.key.y == 0 && entry.key.x in (100..149) && entry.value != " " }.keys.sortedBy { it.x }
         check(topEdgeKeys.size == 50)
 
         val bottomEdgeKeys =
-            grid.map.filter { entry -> entry.key.y == grid.yMax && entry.value != " " }.keys.sortedBy { it.x }
+            pointMap.filter { entry -> entry.key.y == 199 && entry.value != " " }.keys.sortedBy { it.x }
 
         check(bottomEdgeKeys.size == 50)
 
@@ -248,11 +234,11 @@ class Day22 : Solver {
 
     private fun buildGreenLineRule(): WrapRule {
         val topEdgeKeys =
-            grid.map.filter { entry -> entry.key.y == 0 && entry.key.x in (50..99) && entry.value != " " }.keys.sortedBy { it.x }
+            pointMap.filter { entry -> entry.key.y == 0 && entry.key.x in (50..99) && entry.value != " " }.keys.sortedBy { it.x }
         check(topEdgeKeys.size == 50)
 
         val leftEdgeKeys =
-            grid.map.filter { entry -> entry.key.x == 0 && entry.key.y >= 150 && entry.value != " " }.keys.sortedBy { it.y }
+            pointMap.filter { entry -> entry.key.x == 0 && entry.key.y >= 150 && entry.value != " " }.keys.sortedBy { it.y }
         check(leftEdgeKeys.size == 50)
 
         val pairs = topEdgeKeys zip leftEdgeKeys
@@ -263,11 +249,11 @@ class Day22 : Solver {
 
     private fun buildRedSquiggleRule(): WrapRule {
         val bottomEdgeKeys =
-            grid.map.filter { entry -> entry.key.x >= 100 && entry.key.y == 49 && entry.value != " " }.keys.sortedBy { it.x }
+            pointMap.filter { entry -> entry.key.x >= 100 && entry.key.y == 49 && entry.value != " " }.keys.sortedBy { it.x }
         check(bottomEdgeKeys.size == 50)
 
         val rightEdgeKeys =
-            grid.map.filter { entry -> entry.key.x == 99 && entry.key.y in (50..99) && entry.value != " " }.keys.sortedBy { it.x }
+            pointMap.filter { entry -> entry.key.x == 99 && entry.key.y in (50..99) && entry.value != " " }.keys.sortedBy { it.x }
         check(rightEdgeKeys.size == 50)
 
         val pairs = bottomEdgeKeys zip rightEdgeKeys
@@ -278,10 +264,10 @@ class Day22 : Solver {
 
     private fun buildPencilRule(): WrapRule {
         val topRightEdgeKeys =
-            grid.map.filter { entry -> entry.key.x == grid.xMax && entry.value != " " }.keys.sortedBy { it.y }
+            pointMap.filter { entry -> entry.key.x == 149 && entry.value != " " }.keys.sortedBy { it.y }
 
         val joinedEdgeKeys =
-            grid.map.filter { entry -> entry.key.x == 99 && entry.key.y > 99 && entry.value != " " }.keys.sortedBy { -it.y }
+            pointMap.filter { entry -> entry.key.x == 99 && entry.key.y > 99 && entry.value != " " }.keys.sortedBy { -it.y }
 
         check(topRightEdgeKeys.size == joinedEdgeKeys.size)
         check(topRightEdgeKeys.size == 50)
