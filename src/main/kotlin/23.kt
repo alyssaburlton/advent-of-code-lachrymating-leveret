@@ -92,7 +92,7 @@ class Day23 : Solver {
             val validResults = proposedPositions.filter { it.value.size == 1 }
             val newElves = validResults.keys
 
-            println("Done round $round, elves moved: ${newElves.size} / $originalSize")
+            // println("Done round $round, elves moved: ${newElves.size} / $originalSize")
 
             elfMoved = validResults.isNotEmpty()
             round += 1

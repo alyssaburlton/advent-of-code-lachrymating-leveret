@@ -22,12 +22,12 @@ class Day22 : Solver {
             } else if (instruction == 'R') {
                 currentDirection = turnRight(currentDirection)
             } else if (instruction == "E") {
-                println("END")
+                // println("END")
             } else {
                 throw Error("Unexpected: $instruction")
             }
 
-            println(currentPos)
+            // println(currentPos)
         }
 
         return (1000 * (currentPos.y + 1)) + (4 * (currentPos.x + 1)) + scoreFacing(currentDirection)
@@ -51,12 +51,12 @@ class Day22 : Solver {
             } else if (instruction == 'R') {
                 currentDirection = turnRight(currentDirection)
             } else if (instruction == "E") {
-                println("END")
+                // println("END")
             } else {
                 throw Error("Unexpected: $instruction")
             }
 
-            println("$currentPos, facing $currentDirection")
+            // println("$currentPos, facing $currentDirection")
         }
 
         return (1000 * (currentPos.y + 1)) + (4 * (currentPos.x + 1)) + scoreFacing(currentDirection)
