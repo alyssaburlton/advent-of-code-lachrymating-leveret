@@ -8,9 +8,9 @@ class Day22 : Solver {
     private val pointMap = parsePointMap(input[0])
     private val edgeRulesB = buildEdgeRules()
 
-    override fun partA() = tracePath(::wrapAroundA)
+    override fun partA() = tracePath(::wrapAroundSimple)
 
-    override fun partB() = tracePath(::wrapAroundB)
+    override fun partB() = tracePath(::wrapAroundCube)
 
     private fun tracePath(wrapFunction: (Point, Direction) -> Pair<Point, Direction>): Int {
         val startX = pointMap.filter { entry -> entry.key.y == 0 && entry.value == "." }.minOf { it.key.x }
@@ -75,7 +75,7 @@ class Day22 : Solver {
         return pos to direction
     }
 
-    private fun wrapAroundA(currentPos: Point, direction: Direction): Pair<Point, Direction> {
+    private fun wrapAroundSimple(currentPos: Point, direction: Direction): Pair<Point, Direction> {
         val pt = if (direction == Point(1, 0)) {
             val x = pointMap.filter { it.key.y == currentPos.y && it.value != " " }.keys.minOf { it.x }
             Point(x, currentPos.y)
@@ -95,13 +95,17 @@ class Day22 : Solver {
         return pt to direction
     }
 
-    private data class WrapRule(
+    private data class CubeWrapRule(
         val ptPairs: List<Pair<Point, Point>>,
-        val directions: Pair<Direction, Direction>,
-        val directionTransform: (Direction) -> Direction
+        val directions: Pair<Direction, Direction>
     )
 
-    fun wrapAroundB(currentPos: Point, direction: Point): Pair<Point, Direction> {
+    private fun CubeWrapRule.computeNewDirection(oldDirection: Direction): Direction {
+        val directionToInvert = if (oldDirection == directions.first) directions.second else directions.first
+        return Direction(-directionToInvert.x, -directionToInvert.y)
+    }
+
+    fun wrapAroundCube(currentPos: Point, direction: Point): Pair<Point, Direction> {
         val rules = edgeRulesB.filter { rule ->
             (rule.directions.first == direction && rule.ptPairs.map { it.first }.contains(currentPos))
                     || (rule.directions.second == direction && rule.ptPairs.map { it.second }.contains(currentPos))
@@ -116,13 +120,33 @@ class Day22 : Solver {
         val rule = rules.only()
         val pair = rule.ptPairs.first { it.first == currentPos || it.second == currentPos }
         if (pair.first == currentPos) {
-            return pair.second to rule.directionTransform(direction)
+            return pair.second to rule.computeNewDirection(direction)
         } else {
-            return pair.first to rule.directionTransform(direction)
+            return pair.first to rule.computeNewDirection(direction)
         }
     }
 
-    private fun buildEdgeRules(): List<WrapRule> {
+    private fun turnLeft(direction: Direction) = Direction(direction.y, -direction.x)
+    private fun turnRight(direction: Direction) = Direction(-direction.y, direction.x)
+    private fun scoreFacing(direction: Direction) = when (direction) {
+        Direction(1, 0) -> 0
+        Direction(0, 1) -> 1
+        Direction(-1, 0) -> 2
+        Direction(0, -1) -> 3
+        else -> throw Error("What")
+    }
+
+    private fun parseInstructions(instructionStr: String): List<Any> {
+        val numbers = instructionStr.split("L").flatMap { it.split("R") }.map { it.toInt() }
+        val instructions = instructionStr.filter { it == 'L' || it == 'R' }.toCharArray().toList() + "E"
+
+        return (numbers zip instructions).flatMap { listOf(it.first, it.second) }
+    }
+
+    /**
+     * Hardcoded wrap rules for my cube net
+     */
+    private fun buildEdgeRules(): List<CubeWrapRule> {
         return listOf(
             buildPencilRule(),
             buildRedSquiggleRule(),
@@ -135,7 +159,7 @@ class Day22 : Solver {
 
     }
 
-    private fun buildBlueSquiggleRule(): WrapRule {
+    private fun buildBlueSquiggleRule(): CubeWrapRule {
         val topEdgeKeys =
             pointMap.filter { entry -> entry.key.y == 149 && entry.key.x in (50..99) && entry.value != " " }.keys.sortedBy { it.x }
         check(topEdgeKeys.size == 50)
@@ -145,11 +169,10 @@ class Day22 : Solver {
         check(rightEdgeKeys.size == 50)
 
         val pairs = topEdgeKeys zip rightEdgeKeys
-
-        return WrapRule(pairs, Direction(0, 1) to Direction(1, 0)) { Direction(-it.y, -it.x) }
+        return CubeWrapRule(pairs, Direction(0, 1) to Direction(1, 0))
     }
 
-    private fun buildGreenSquiggleRule(): WrapRule {
+    private fun buildGreenSquiggleRule(): CubeWrapRule {
         val leftEdgeKeys =
             pointMap.filter { entry -> entry.key.x == 50 && entry.key.y in (50..99) && entry.value != " " }.keys.sortedBy { it.y }
         check(leftEdgeKeys.size == 50)
@@ -159,12 +182,10 @@ class Day22 : Solver {
         check(topEdgeKeys.size == 50)
 
         val pairs = leftEdgeKeys zip topEdgeKeys
-        // println(pairs)
-
-        return WrapRule(pairs, Direction(-1, 0) to Direction(0, -1)) { Direction(-it.y, -it.x) }
+        return CubeWrapRule(pairs, Direction(-1, 0) to Direction(0, -1))
     }
 
-    private fun buildBlueLineRule(): WrapRule {
+    private fun buildBlueLineRule(): CubeWrapRule {
         val topLeftEdgeKeys =
             pointMap.filter { entry -> entry.key.x == 50 && entry.key.y in (0..49) && entry.value != " " }.keys.sortedBy { it.y }
         check(topLeftEdgeKeys.size == 50)
@@ -174,12 +195,10 @@ class Day22 : Solver {
         check(bottomLeftEdgeKeys.size == 50)
 
         val pairs = topLeftEdgeKeys zip bottomLeftEdgeKeys
-        // println(pairs)
-
-        return WrapRule(pairs, Direction(-1, 0) to Direction(-1, 0)) { Direction(-it.x, it.y) }
+        return CubeWrapRule(pairs, Direction(-1, 0) to Direction(-1, 0))
     }
 
-    private fun buildRedLineRule(): WrapRule {
+    private fun buildRedLineRule(): CubeWrapRule {
         val topEdgeKeys =
             pointMap.filter { entry -> entry.key.y == 0 && entry.key.x in (100..149) && entry.value != " " }.keys.sortedBy { it.x }
         check(topEdgeKeys.size == 50)
@@ -190,12 +209,10 @@ class Day22 : Solver {
         check(bottomEdgeKeys.size == 50)
 
         val pairs = topEdgeKeys zip bottomEdgeKeys
-        // println(pairs)
-
-        return WrapRule(pairs, Direction(0, -1) to Direction(0, 1)) { it }
+        return CubeWrapRule(pairs, Direction(0, -1) to Direction(0, 1))
     }
 
-    private fun buildGreenLineRule(): WrapRule {
+    private fun buildGreenLineRule(): CubeWrapRule {
         val topEdgeKeys =
             pointMap.filter { entry -> entry.key.y == 0 && entry.key.x in (50..99) && entry.value != " " }.keys.sortedBy { it.x }
         check(topEdgeKeys.size == 50)
@@ -205,12 +222,10 @@ class Day22 : Solver {
         check(leftEdgeKeys.size == 50)
 
         val pairs = topEdgeKeys zip leftEdgeKeys
-        // println(pairs)
-
-        return WrapRule(pairs, Direction(0, -1) to Direction(-1, 0)) { Direction(-it.y, -it.x) }
+        return CubeWrapRule(pairs, Direction(0, -1) to Direction(-1, 0))
     }
 
-    private fun buildRedSquiggleRule(): WrapRule {
+    private fun buildRedSquiggleRule(): CubeWrapRule {
         val bottomEdgeKeys =
             pointMap.filter { entry -> entry.key.x >= 100 && entry.key.y == 49 && entry.value != " " }.keys.sortedBy { it.x }
         check(bottomEdgeKeys.size == 50)
@@ -220,12 +235,10 @@ class Day22 : Solver {
         check(rightEdgeKeys.size == 50)
 
         val pairs = bottomEdgeKeys zip rightEdgeKeys
-
-        // println(pairs)
-        return WrapRule(pairs, Direction(0, 1) to Direction(1, 0)) { Direction(-it.y, -it.x) }
+        return CubeWrapRule(pairs, Direction(0, 1) to Direction(1, 0))
     }
 
-    private fun buildPencilRule(): WrapRule {
+    private fun buildPencilRule(): CubeWrapRule {
         val topRightEdgeKeys =
             pointMap.filter { entry -> entry.key.x == 149 && entry.value != " " }.keys.sortedBy { it.y }
 
@@ -236,26 +249,6 @@ class Day22 : Solver {
         check(topRightEdgeKeys.size == 50)
 
         val pts = topRightEdgeKeys zip joinedEdgeKeys
-        // println(pts)
-        return WrapRule(pts, Direction(1, 0) to Direction(1, 0)) { Direction(-it.x, it.y) }
-    }
-
-
-    private fun turnLeft(direction: Direction) = Direction(direction.y, -direction.x)
-    private fun turnRight(direction: Direction) = Direction(-direction.y, direction.x)
-    private fun scoreFacing(direction: Direction) = when (direction) {
-        Direction(1, 0) -> 0
-        Direction(0, 1) -> 1
-        Direction(-1, 0) -> 2
-        Direction(0, -1) -> 3
-        else -> throw Error("What")
-    }
-
-
-    private fun parseInstructions(instructionStr: String): List<Any> {
-        val numbers = instructionStr.split("L").flatMap { it.split("R") }.map { it.toInt() }
-        val instructions = instructionStr.filter { it == 'L' || it == 'R' }.toCharArray().toList() + "E"
-
-        return (numbers zip instructions).flatMap { listOf(it.first, it.second) }
+        return CubeWrapRule(pts, Direction(1, 0) to Direction(1, 0))
     }
 }
