@@ -42,9 +42,9 @@ class Day23 : Solver {
     }
 
     private fun proposePosition(elf: Point, elvesMap: Map<Int, List<Point>>, roundNumber: Int): Point? {
-        val elvesWithRelevantY: List<Point> = (elf.y - 1..elf.y + 1).flatMap { elvesMap[it] ?: emptyList() }
-        val relevantOtherElves =
-            elvesWithRelevantY.filter { it.x in (elf.x - 1..elf.x + 1) && it != elf }
+        val relevantOtherElves: List<Point> = (elf.y - 1..elf.y + 1)
+            .flatMap { elvesMap[it] ?: emptyList() }
+            .filter { it.x in (elf.x - 1..elf.x + 1) && it != elf }
 
         if (relevantOtherElves.isEmpty()) {
             // Don't move
