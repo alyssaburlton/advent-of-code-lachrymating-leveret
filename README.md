@@ -18,7 +18,6 @@ And I'm also aiming ultimately for every solution to:
 - ⌛ Be implemented as functionally as possible, with no mutation
     - ✘ 19A & 19B
     - ✘ 22A & 22B
-    - ✘ 23A & 23B
 - ✔ Run without any crazy memory/CPU requirements
 - ⌛ Run in <500ms (each part)
     - ✘ 16A: ~800ms
@@ -26,5 +25,4 @@ And I'm also aiming ultimately for every solution to:
     - ✘ 19A: ~3500ms
     - ✘ 19B: ~8500ms
     - ✘ 20B: ~600ms
-    - ✘ 23A: ~1200ms
-    - ✘ 23B: ~85000ms
+    - ✘ 23B: ~2500ms

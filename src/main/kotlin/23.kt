@@ -4,10 +4,10 @@ class Day23 : Solver {
     private val input = readStringGrid("23")
     private val startingElves = input.map.filter { it.value == "#" }.keys.groupBy { it.y }
 
-    private var proposalTime: Long = 0
-
     override fun partA() =
         (0..9).fold(startingElves) { elves, round -> iterateElves(elves, round).newElves }.let(::countEmptySpaces)
+
+    override fun partB() = iterateElvesUntilDone(startingElves)
 
     private fun countEmptySpaces(elves: Map<Int, List<Point>>): Int {
         val points = elves.values.flatten()
@@ -18,46 +18,28 @@ class Day23 : Solver {
 
     private data class ElfRoundResult(val newElves: Map<Int, List<Point>>, val elfMoved: Boolean)
 
-    private fun iterateElves(elvesMap: Map<Int, List<Point>>, roundNumber: Int): ElfRoundResult {
-        val proposedPositions = mutableMapOf<Point, MutableList<Point>>()
-        val elvesNotMoved = mutableSetOf<Point>()
-
-        val flatElves = elvesMap.values.flatten()
-        flatElves.forEach { elf ->
-            val timer = DurationTimer()
-            val proposal = proposePosition(elf, elvesMap, roundNumber)
-            proposalTime += timer.duration()
-
-            if (proposal != null) {
-                val current = proposedPositions.getOrPut(proposal, ::mutableListOf)
-                current.add(elf)
-            } else {
-                elvesNotMoved.add(elf)
-            }
+    private tailrec fun iterateElvesUntilDone(elvesMap: Map<Int, List<Point>>, roundNumber: Int = 0): Int {
+        val result = iterateElves(elvesMap, roundNumber)
+        if (!result.elfMoved) {
+            return roundNumber + 1
         }
 
-        val otherElvesNotMoved = proposedPositions.filter { it.value.size > 1 }.values.flatten().toSet()
-        val validResults = proposedPositions.filter { it.value.size == 1 }
-        val movedElves = validResults.keys
-
-        val newElves = elvesNotMoved + otherElvesNotMoved + movedElves
-        // printElves(newElves)
-        check(newElves.size == flatElves.size)
-        return ElfRoundResult(newElves.groupBy { it.y }, movedElves.isNotEmpty())
+        return iterateElvesUntilDone(result.newElves, roundNumber + 1)
     }
 
-//    private fun printElves(elves: Set<Point>) {
-//        val yMin = elves.minOf { it.y }
-//        val yMax = elves.maxOf { it.y }
-//        val xMin = elves.minOf { it.x }
-//        val xMax = elves.maxOf { it.x }
-//
-//        val str = (yMin..yMax).joinToString("\n") { y ->
-//            (xMin..xMax).joinToString("") { x -> if (elves.contains(Point(x, y))) "#" else "." }
-//        }
-//        println(str)
-//        println()
-//    }
+    private fun iterateElves(elvesMap: Map<Int, List<Point>>, roundNumber: Int): ElfRoundResult {
+        val flatElves = elvesMap.values.flatten()
+
+        val result: Map<Point?, List<Point>> = flatElves.groupBy { elf -> proposePosition(elf, elvesMap, roundNumber) }
+
+        val notMoved = result[null] ?: emptyList()
+        val newPositions = result.filter { it.value.size == 1 }.keys.filterNotNull()
+        val invalidProposals = result.filter { it.key != null && it.value.size > 1 }.values.flatten()
+
+        val newElves = notMoved + newPositions + invalidProposals
+        check(newElves.size == flatElves.size)
+        return ElfRoundResult(newElves.groupBy { it.y }, newPositions.isNotEmpty())
+    }
 
     private fun proposePosition(elf: Point, elvesMap: Map<Int, List<Point>>, roundNumber: Int): Point? {
         val elvesWithRelevantY: List<Point> = (elf.y - 1..elf.y + 1).flatMap { elvesMap[it] ?: emptyList() }
@@ -86,23 +68,4 @@ class Day23 : Solver {
     }
 
     private fun move(elvesToCheck: List<Point>, newPoint: Point) = if (elvesToCheck.isEmpty()) newPoint else null
-
-    override fun partB(): Any {
-        var elves = startingElves
-
-        var elfMoved = true
-        var round = 0
-
-        while (elfMoved) {
-            val (newElves, newElfMoved) = iterateElves(elves, round)
-
-            elfMoved = newElfMoved
-            elves = newElves
-            round += 1
-        }
-
-        println(proposalTime)
-
-        return round
-    }
 }
