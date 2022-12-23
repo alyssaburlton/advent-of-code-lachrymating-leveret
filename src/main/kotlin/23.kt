@@ -7,7 +7,7 @@ class Day23 : Solver {
     private var proposalTime: Long = 0
 
     override fun partA() =
-        (0..9).fold(startingElves, ::iterateElves).let(::countEmptySpaces)
+        (0..9).fold(startingElves) { elves, round -> iterateElves(elves, round).newElves }.let(::countEmptySpaces)
 
     private fun countEmptySpaces(elves: Map<Int, List<Point>>): Int {
         val points = elves.values.flatten()
@@ -16,7 +16,9 @@ class Day23 : Solver {
         return (xBounds * yBounds) - points.size
     }
 
-    private fun iterateElves(elvesMap: Map<Int, List<Point>>, roundNumber: Int): Map<Int, List<Point>> {
+    private data class ElfRoundResult(val newElves: Map<Int, List<Point>>, val elfMoved: Boolean)
+
+    private fun iterateElves(elvesMap: Map<Int, List<Point>>, roundNumber: Int): ElfRoundResult {
         val proposedPositions = mutableMapOf<Point, MutableList<Point>>()
         val elvesNotMoved = mutableSetOf<Point>()
 
@@ -41,7 +43,7 @@ class Day23 : Solver {
         val newElves = elvesNotMoved + otherElvesNotMoved + movedElves
         // printElves(newElves)
         check(newElves.size == flatElves.size)
-        return newElves.groupBy { it.y }
+        return ElfRoundResult(newElves.groupBy { it.y }, movedElves.isNotEmpty())
     }
 
 //    private fun printElves(elves: Set<Point>) {
@@ -92,9 +94,9 @@ class Day23 : Solver {
         var round = 0
 
         while (elfMoved) {
-            val newElves = iterateElves(elves, round)
+            val (newElves, newElfMoved) = iterateElves(elves, round)
 
-            elfMoved = (newElves.values.flatten() - elves.values.flatten()).isNotEmpty()
+            elfMoved = newElfMoved
             elves = newElves
             round += 1
         }
