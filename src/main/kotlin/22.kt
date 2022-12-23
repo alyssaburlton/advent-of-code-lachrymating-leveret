@@ -1,3 +1,5 @@
+typealias Direction = Point
+
 class Day22 : Solver {
     override val day = 22
 
@@ -6,7 +8,11 @@ class Day22 : Solver {
     private val pointMap = parsePointMap(input[0])
     private val edgeRulesB = buildEdgeRules()
 
-    override fun partA(): Any {
+    override fun partA() = tracePath(::wrapAroundA)
+
+    override fun partB() = tracePath(::wrapAroundB)
+
+    private fun tracePath(wrapFunction: (Point, Direction) -> Pair<Point, Direction>): Int {
         val startX = pointMap.filter { entry -> entry.key.y == 0 && entry.value == "." }.minOf { it.key.x }
         val startPos = Point(startX, 0)
 
@@ -16,34 +22,7 @@ class Day22 : Solver {
         while (instructionsToGo.isNotEmpty()) {
             val instruction = instructionsToGo.removeFirst()
             if (instruction is Int) {
-                currentPos = moveInDirection(currentPos, currentDirection, instruction)
-            } else if (instruction == 'L') {
-                currentDirection = turnLeft(currentDirection)
-            } else if (instruction == 'R') {
-                currentDirection = turnRight(currentDirection)
-            } else if (instruction == "E") {
-                // println("END")
-            } else {
-                throw Error("Unexpected: $instruction")
-            }
-
-            // println(currentPos)
-        }
-
-        return (1000 * (currentPos.y + 1)) + (4 * (currentPos.x + 1)) + scoreFacing(currentDirection)
-    }
-
-    override fun partB(): Any {
-        val startX = pointMap.filter { entry -> entry.key.y == 0 && entry.value == "." }.minOf { it.key.x }
-        val startPos = Point(startX, 0)
-
-        var currentPos = startPos
-        var currentDirection = Point(1, 0)
-        val instructionsToGo = instructions.toMutableList()
-        while (instructionsToGo.isNotEmpty()) {
-            val instruction = instructionsToGo.removeFirst()
-            if (instruction is Int) {
-                val (newPos, newDir) = moveInDirectionB(currentPos, currentDirection, instruction)
+                val (newPos, newDir) = moveInDirectionB(currentPos, currentDirection, instruction, wrapFunction)
                 currentPos = newPos
                 currentDirection = newDir
             } else if (instruction == 'L') {
@@ -62,11 +41,16 @@ class Day22 : Solver {
         return (1000 * (currentPos.y + 1)) + (4 * (currentPos.x + 1)) + scoreFacing(currentDirection)
     }
 
-    private fun moveInDirectionB(startPos: Point, direction: Point, amount: Int): Pair<Point, Point> {
+    private fun moveInDirectionB(
+        startPos: Point,
+        startDirection: Direction,
+        amount: Int,
+        wrapFunction: (Point, Direction) -> Pair<Point, Direction>
+    ): Pair<Point, Direction> {
         var hitWall = false
         var amountMoved = 0
         var pos = startPos
-        var direction = direction
+        var direction = startDirection
 
         while (!hitWall && amountMoved < amount) {
             var nextPos = Point(pos.x + direction.x, pos.y + direction.y)
@@ -74,7 +58,7 @@ class Day22 : Solver {
             val value = pointMap[nextPos]
             if (value == null || value == " ") {
                 // wrap around
-                val wrapResult = wrapAroundB(pos, direction)
+                val wrapResult = wrapFunction(pos, direction)
                 nextPos = wrapResult.first
                 currentDirection = wrapResult.second
             }
@@ -91,31 +75,8 @@ class Day22 : Solver {
         return pos to direction
     }
 
-    private fun moveInDirection(startPos: Point, direction: Point, amount: Int): Point {
-        var hitWall = false
-        var amountMoved = 0
-        var pos = startPos
-        while (!hitWall && amountMoved < amount) {
-            var nextPos = Point(pos.x + direction.x, pos.y + direction.y)
-            val value = pointMap[nextPos]
-            if (value == null || value == " ") {
-                // wrap around
-                nextPos = wrapAround(nextPos, direction)
-            }
-
-            if (pointMap[nextPos] == "#") {
-                hitWall = true
-            } else {
-                pos = nextPos
-                amountMoved++
-            }
-        }
-
-        return pos
-    }
-
-    private fun wrapAround(currentPos: Point, direction: Point): Point {
-        return if (direction == Point(1, 0)) {
+    private fun wrapAroundA(currentPos: Point, direction: Direction): Pair<Point, Direction> {
+        val pt = if (direction == Point(1, 0)) {
             val x = pointMap.filter { it.key.y == currentPos.y && it.value != " " }.keys.minOf { it.x }
             Point(x, currentPos.y)
         } else if (direction == Point(-1, 0)) {
@@ -130,15 +91,17 @@ class Day22 : Solver {
         } else {
             throw Error("What direction: $direction")
         }
+
+        return pt to direction
     }
 
     private data class WrapRule(
         val ptPairs: List<Pair<Point, Point>>,
-        val directions: Pair<Point, Point>,
-        val directionTransform: (Point) -> Point
+        val directions: Pair<Direction, Direction>,
+        val directionTransform: (Direction) -> Direction
     )
 
-    fun wrapAroundB(currentPos: Point, direction: Point): Pair<Point, Point> {
+    fun wrapAroundB(currentPos: Point, direction: Point): Pair<Point, Direction> {
         val rules = edgeRulesB.filter { rule ->
             (rule.directions.first == direction && rule.ptPairs.map { it.first }.contains(currentPos))
                     || (rule.directions.second == direction && rule.ptPairs.map { it.second }.contains(currentPos))
@@ -183,7 +146,7 @@ class Day22 : Solver {
 
         val pairs = topEdgeKeys zip rightEdgeKeys
 
-        return WrapRule(pairs, Point(0, 1) to Point(1, 0)) { Point(-it.y, -it.x) }
+        return WrapRule(pairs, Direction(0, 1) to Direction(1, 0)) { Direction(-it.y, -it.x) }
     }
 
     private fun buildGreenSquiggleRule(): WrapRule {
@@ -198,7 +161,7 @@ class Day22 : Solver {
         val pairs = leftEdgeKeys zip topEdgeKeys
         // println(pairs)
 
-        return WrapRule(pairs, Point(-1, 0) to Point(0, -1)) { Point(-it.y, -it.x) }
+        return WrapRule(pairs, Direction(-1, 0) to Direction(0, -1)) { Direction(-it.y, -it.x) }
     }
 
     private fun buildBlueLineRule(): WrapRule {
@@ -213,7 +176,7 @@ class Day22 : Solver {
         val pairs = topLeftEdgeKeys zip bottomLeftEdgeKeys
         // println(pairs)
 
-        return WrapRule(pairs, Point(-1, 0) to Point(-1, 0)) { Point(-it.x, it.y) }
+        return WrapRule(pairs, Direction(-1, 0) to Direction(-1, 0)) { Direction(-it.x, it.y) }
     }
 
     private fun buildRedLineRule(): WrapRule {
@@ -229,7 +192,7 @@ class Day22 : Solver {
         val pairs = topEdgeKeys zip bottomEdgeKeys
         // println(pairs)
 
-        return WrapRule(pairs, Point(0, -1) to Point(0, 1)) { it }
+        return WrapRule(pairs, Direction(0, -1) to Direction(0, 1)) { it }
     }
 
     private fun buildGreenLineRule(): WrapRule {
@@ -244,7 +207,7 @@ class Day22 : Solver {
         val pairs = topEdgeKeys zip leftEdgeKeys
         // println(pairs)
 
-        return WrapRule(pairs, Point(0, -1) to Point(-1, 0)) { Point(-it.y, -it.x) }
+        return WrapRule(pairs, Direction(0, -1) to Direction(-1, 0)) { Direction(-it.y, -it.x) }
     }
 
     private fun buildRedSquiggleRule(): WrapRule {
@@ -259,7 +222,7 @@ class Day22 : Solver {
         val pairs = bottomEdgeKeys zip rightEdgeKeys
 
         // println(pairs)
-        return WrapRule(pairs, Point(0, 1) to Point(1, 0)) { Point(-it.y, -it.x) }
+        return WrapRule(pairs, Direction(0, 1) to Direction(1, 0)) { Direction(-it.y, -it.x) }
     }
 
     private fun buildPencilRule(): WrapRule {
@@ -274,17 +237,17 @@ class Day22 : Solver {
 
         val pts = topRightEdgeKeys zip joinedEdgeKeys
         // println(pts)
-        return WrapRule(pts, Point(1, 0) to Point(1, 0)) { Point(-it.x, it.y) }
+        return WrapRule(pts, Direction(1, 0) to Direction(1, 0)) { Direction(-it.x, it.y) }
     }
 
 
-    private fun turnLeft(direction: Point) = Point(direction.y, -direction.x)
-    private fun turnRight(direction: Point) = Point(-direction.y, direction.x)
-    private fun scoreFacing(direction: Point) = when (direction) {
-        Point(1, 0) -> 0
-        Point(0, 1) -> 1
-        Point(-1, 0) -> 2
-        Point(0, -1) -> 3
+    private fun turnLeft(direction: Direction) = Direction(direction.y, -direction.x)
+    private fun turnRight(direction: Direction) = Direction(-direction.y, direction.x)
+    private fun scoreFacing(direction: Direction) = when (direction) {
+        Direction(1, 0) -> 0
+        Direction(0, 1) -> 1
+        Direction(-1, 0) -> 2
+        Direction(0, -1) -> 3
         else -> throw Error("What")
     }
 
@@ -292,8 +255,6 @@ class Day22 : Solver {
     private fun parseInstructions(instructionStr: String): List<Any> {
         val numbers = instructionStr.split("L").flatMap { it.split("R") }.map { it.toInt() }
         val instructions = instructionStr.filter { it == 'L' || it == 'R' }.toCharArray().toList() + "E"
-        // println(numbers)
-        // println(instructions)
 
         return (numbers zip instructions).flatMap { listOf(it.first, it.second) }
     }
