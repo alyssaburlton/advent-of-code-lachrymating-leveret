@@ -69,7 +69,7 @@ class Grid<T>(val map: Map<Point, T>) {
     }
 
     fun prettyString() = (yMin..yMax).joinToString("\n") { y ->
-        (xMin..xMax).joinToString("") { x -> map.getValue(Point(x, y)).toString() }
+        (xMin..xMax).joinToString("") { x -> map.getOrDefault(Point(x, y), ".").toString() }
     }
 
     fun print() {
@@ -88,14 +88,14 @@ class Grid<T>(val map: Map<Point, T>) {
     private fun computeRows() =
         (yMin..yMax).map { y ->
             (xMin..xMax).map { x ->
-                map.getValue(Point(x, y))
+                map.getOrDefault(Point(x, y), ".")
             }
         }
 
     private fun computeColumns() =
         (xMin..xMax).map { x ->
             (yMin..yMax).map { y ->
-                map.getValue(Point(x, y))
+                map.getOrDefault(Point(x, y), ".")
             }
         }
 }
