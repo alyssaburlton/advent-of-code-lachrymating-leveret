@@ -1,29 +1,39 @@
+private data class Blizzard(val position: Point, val direction: Direction)
+private data class ExplorationResult(val steps: Int, val blizzards: List<Blizzard>)
+
 class Day24 : Solver {
     override val day = 24
 
     private val grid = readStringGrid("24")
     private val start = grid.map.entries.first { it.value == "." && it.key.y == grid.yMin }.key
     private val end = grid.map.entries.first { it.value == "." && it.key.y == grid.yMax }.key
+    private val walls = grid.map.filter { it.value == "#" }.keys
     private val startBlizzards = parseBlizzards()
 
-    override fun partA() = explorePaths(listOf(start)).first
+    override fun partA() = explorePaths(start, end, startBlizzards).steps
 
-    override fun partB(): Any {
-        val (stepsA, blizzardsA) = explorePaths(listOf(start))
-        val (stepsB, blizzardsB) = explorePaths(listOf(end), blizzardsA, start)
-        val (stepsC, _) = explorePaths(listOf(start), blizzardsB, end)
+    override fun partB() =
+        listOf(start to end, end to start, start to end).fold(
+            ExplorationResult(
+                0,
+                startBlizzards
+            )
+        ) { (steps, blizzards), (start, end) ->
+            val newResult = explorePaths(start, end, blizzards)
+            ExplorationResult(steps + newResult.steps, newResult.blizzards)
+        }.steps
 
-        return stepsA + stepsB + stepsC
-    }
+    private fun explorePaths(startPoint: Point, endPoint: Point, blizzards: List<Blizzard>) =
+        explorePaths(listOf(startPoint), blizzards, endPoint, 0)
 
     private tailrec fun explorePaths(
         currentPoints: List<Point>,
-        blizzards: List<Blizzard> = startBlizzards,
-        goal: Point = end,
-        steps: Int = 0
-    ): Pair<Int, List<Blizzard>> {
+        blizzards: List<Blizzard>,
+        goal: Point,
+        steps: Int
+    ): ExplorationResult {
         if (currentPoints.contains(goal)) {
-            return steps to blizzards
+            return ExplorationResult(steps, blizzards)
         }
 
         val newBlizzards = iterateBlizzards(blizzards)
@@ -38,34 +48,29 @@ class Day24 : Solver {
         blizzards: Set<Point>
     ) = (grid.neighbours(point) + point)
         .filter { neighbour ->
-            grid.getValue(neighbour) != "#" && !blizzards.contains(neighbour)
+            !walls.contains(neighbour) && !blizzards.contains(neighbour)
         }
 
-    private data class Blizzard(val position: Point, val direction: Direction)
+    private fun parseBlizzards() = parseBlizzardsForDirection("^", Direction(0, -1)) +
+            parseBlizzardsForDirection("v", Direction(0, 1)) +
+            parseBlizzardsForDirection(">", Direction(1, 0)) +
+            parseBlizzardsForDirection("<", Direction(-1, 0))
 
-    private fun parseBlizzards(): List<Blizzard> {
-        val upBlizzards = grid.map.filter { it.value == "^" }.keys.map { Blizzard(it, Direction(0, -1)) }
-        val downBlizzards = grid.map.filter { it.value == "v" }.keys.map { Blizzard(it, Direction(0, 1)) }
-        val rightBlizzards = grid.map.filter { it.value == ">" }.keys.map { Blizzard(it, Direction(1, 0)) }
-        val leftBlizzards = grid.map.filter { it.value == "<" }.keys.map { Blizzard(it, Direction(-1, 0)) }
-
-        return upBlizzards + downBlizzards + rightBlizzards + leftBlizzards
-    }
+    private fun parseBlizzardsForDirection(directionStr: String, direction: Direction) =
+        grid.map.filter { it.value == directionStr }.keys.map { Blizzard(it, direction) }
 
     private fun iterateBlizzards(blizzards: List<Blizzard>) = blizzards.map { it.move() }
 
     private fun Blizzard.move(): Blizzard {
-        val newPos = Point(position.x + direction.x, position.y + direction.y)
-        if (newPos.y == grid.yMin) {
-            return Blizzard(Point(newPos.x, grid.yMax - 1), direction)
-        } else if (newPos.y == grid.yMax) {
-            return Blizzard(Point(newPos.x, grid.yMin + 1), direction)
-        } else if (newPos.x == grid.xMax) {
-            return Blizzard(Point(grid.xMin + 1, newPos.y), direction)
-        } else if (newPos.x == grid.xMin) {
-            return Blizzard(Point(grid.xMax - 1, newPos.y), direction)
-        } else {
-            return Blizzard(newPos, direction)
-        }
+        val warpedX = warpCoordinate(position.x + direction.x, grid.xMin, grid.xMax)
+        val warpedY = warpCoordinate(position.y + direction.y, grid.yMin, grid.yMax)
+        return Blizzard(Point(warpedX, warpedY), direction)
     }
+
+    private fun warpCoordinate(coord: Int, min: Int, max: Int) =
+        when (coord) {
+            min -> max - 1
+            max -> min + 1
+            else -> coord
+        }
 }
