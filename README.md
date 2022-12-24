@@ -17,13 +17,12 @@ And I'm also aiming ultimately for every solution to:
 - ⌛ Not have anything hardcoded or specific to my input
     - ✘ 22B: Hardcoded the "wrap rules" for my specific net
 - ⌛ Be implemented as functionally as possible, with no mutation
-    - ✘ 19A & 19B
     - ✘ 22A & 22B
 - ✔ Run without any crazy memory/CPU requirements
 - ⌛ Run in <500ms (each part)
     - ✘ 16A: ~800ms
     - ✘ 16B: ~1200ms
-    - ✘ 19A: ~3500ms
-    - ✘ 19B: ~8500ms
+    - ✘ 19A: ~1200ms
+    - ✘ 19B: ~3000ms
     - ✘ 20B: ~600ms
     - ✘ 23B: ~2500ms
