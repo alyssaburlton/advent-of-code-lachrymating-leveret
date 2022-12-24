@@ -28,12 +28,10 @@ class Day22 : Solver {
         }
 
         val instruction = instructions.first()
-        val (newPosition, newDirection) = if (instruction is Int) {
-            moveInDirection(position, direction, instruction, wrapFunction)
-        } else if (instruction == 'L') {
-            position to turnLeft(direction)
-        } else {
-            position to turnRight(direction)
+        val (newPosition, newDirection) = when (instruction) {
+            is Int -> moveInDirection(position, direction, instruction, wrapFunction)
+            'L' -> position to turnLeft(direction)
+            else -> position to turnRight(direction)
         }
 
         return processInstructions(newPosition, newDirection, instructions.drop(1), wrapFunction)
@@ -62,18 +60,25 @@ class Day22 : Solver {
         direction: Direction,
         wrapFunction: (Point, Direction) -> Pair<Point, Direction>
     ): Pair<Point, Direction> {
-        val nextPos = position + direction
-        val value = pointMap[nextPos]
+        val (newPosition, newDirection) = stepAndWrap(position, direction, wrapFunction)
+        val value = pointMap[newPosition]
 
         return if (value == "#") {
             position to direction
-        } else if (value == null || value == " ") {
-            val (newPosition, newDirection) = wrapFunction(position, direction)
-            if (pointMap[newPosition] == "#") {
-                position to direction
-            } else {
-                newPosition to newDirection
-            }
+        } else {
+            newPosition to newDirection
+        }
+    }
+
+    private fun stepAndWrap(
+        position: Point, direction: Direction,
+        wrapFunction: (Point, Direction) -> Pair<Point, Direction>
+    ): Pair<Point, Direction> {
+        val nextPos = position + direction
+        val value = pointMap[nextPos]
+
+        return if (value == null || value == " ") {
+            wrapFunction(position, direction)
         } else {
             nextPos to direction
         }
