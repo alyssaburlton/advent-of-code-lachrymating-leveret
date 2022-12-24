@@ -2,61 +2,44 @@ class Day24 : Solver {
     override val day = 24
 
     private val grid = readStringGrid("24")
-    private val start = grid.map.entries.first { it.value == "." && it.key.y == 0 }.key
+    private val start = grid.map.entries.first { it.value == "." && it.key.y == grid.yMin }.key
     private val end = grid.map.entries.first { it.value == "." && it.key.y == grid.yMax }.key
     private val startBlizzards = parseBlizzards()
 
-
-    override fun partA(): Any {
-        return explorePaths(listOf(listOf(start))).first.minOf { it.size - 1 }
-    }
+    override fun partA() = explorePaths(listOf(start)).first
 
     override fun partB(): Any {
-        var stepsSoFar = 0
-        val (pathsA, blizzardsA) = explorePaths(listOf(listOf(start)))
-        stepsSoFar += pathsA.minOf { it.size - 1 }
-        println(stepsSoFar)
+        val (stepsA, blizzardsA) = explorePaths(listOf(start))
+        val (stepsB, blizzardsB) = explorePaths(listOf(end), blizzardsA, start)
+        val (stepsC, _) = explorePaths(listOf(start), blizzardsB, end)
 
-        val (pathsB, blizzardsB) = explorePaths(listOf(listOf(end)), blizzardsA, start)
-        stepsSoFar += pathsB.minOf { it.size - 1 }
-        println(stepsSoFar)
-
-        val (pathsC, _) = explorePaths(listOf(listOf(start)), blizzardsB, end)
-        return stepsSoFar + pathsC.minOf { it.size - 1 }
+        return stepsA + stepsB + stepsC
     }
 
     private tailrec fun explorePaths(
-        currentPaths: List<List<Point>>,
+        currentPoints: List<Point>,
         blizzards: List<Blizzard> = startBlizzards,
-        goal: Point = end
-    ): Pair<List<List<Point>>, List<Blizzard>> {
-        if (currentPaths.any { it.last() == goal }) {
-            return currentPaths.filter { it.last() == goal } to blizzards
+        goal: Point = end,
+        steps: Int = 0
+    ): Pair<Int, List<Blizzard>> {
+        if (currentPoints.contains(goal)) {
+            return steps to blizzards
         }
 
         val newBlizzards = iterateBlizzards(blizzards)
         val blizzardPoints = newBlizzards.map { it.position }.toSet()
 
-        val newPaths = currentPaths.flatMap { path -> takeAllSteps(path, blizzardPoints, goal) }
-        val prunedPaths = newPaths.distinctBy { it.last() }
-        return explorePaths(prunedPaths, newBlizzards, goal)
+        val newPoints = currentPoints.flatMap { point -> takeAllSteps(point, blizzardPoints) }.distinct()
+        return explorePaths(newPoints, newBlizzards, goal, steps + 1)
     }
 
     private fun takeAllSteps(
-        path: List<Point>,
-        blizzards: Set<Point>,
-        goal: Point
-    ): List<List<Point>> {
-        val currentPoint = path.last()
-        if (currentPoint == goal) {
-            return listOf(path)
+        point: Point,
+        blizzards: Set<Point>
+    ) = (grid.neighbours(point) + point)
+        .filter { neighbour ->
+            grid.getValue(neighbour) != "#" && !blizzards.contains(neighbour)
         }
-
-        return (grid.neighbours(currentPoint) + currentPoint)
-            .filter { neighbour ->
-                grid.getValue(neighbour) != "#" && !blizzards.contains(neighbour)
-            }.map { path + it }
-    }
 
     private data class Blizzard(val position: Point, val direction: Direction)
 
@@ -69,9 +52,7 @@ class Day24 : Solver {
         return upBlizzards + downBlizzards + rightBlizzards + leftBlizzards
     }
 
-    private fun iterateBlizzards(blizzards: List<Blizzard>) = blizzards.map {
-        it.move()
-    }
+    private fun iterateBlizzards(blizzards: List<Blizzard>) = blizzards.map { it.move() }
 
     private fun Blizzard.move(): Blizzard {
         val newPos = Point(position.x + direction.x, position.y + direction.y)

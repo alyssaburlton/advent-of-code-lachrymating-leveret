@@ -125,6 +125,11 @@ class AnswersTest {
         Day23().testDay(4109, 1055)
     }
 
+    @Test
+    fun `Day 24`() {
+        Day24().testDay(242, 720)
+    }
+
     private fun Solver.testDay(outputA: Any, outputB: Any) {
         partA() shouldBe outputA
         partB() shouldBe outputB
