@@ -42,18 +42,88 @@ class Day19 : Solver {
     }
 
     private fun scoreBlueprint(blueprint: OreBlueprint, maxTime: Int): Int {
+        // println()
+        // println("Scoring blueprint $blueprint")
         val state = OreState(blueprint, OreType.values().associateWith { 0 }, mapOf(OreType.ORE to 1), null)
         var states = listOf(state)
         var timeRemaining = maxTime
         while (timeRemaining > 0) {
             states = takeAllSteps(states, timeRemaining)
+            // val size = states.size
+            states = pruneBadStates(states, timeRemaining)
+
+            // println("$timeRemaining: $size -> ${states.size}")
             maxStatesConsidered = maxOf(maxStatesConsidered, states.size)
 
             timeRemaining--
         }
 
-        return states.maxOf { it.resources.getOrDefault(OreType.GEODE, 0) }
+        return states.maxOfOrNull { it.resources.getOrDefault(OreType.GEODE, 0) } ?: 0
     }
+
+    private fun pruneBadStates(states: List<OreState>, timeRemaining: Int): List<OreState> {
+        if (states.isEmpty()) return states
+
+        val guaranteed = getGuaranteedMinimum(states, timeRemaining)
+        return states.filter { getOptimisticMaximum(it, timeRemaining) >= maxOf(guaranteed, 1) }
+    }
+
+    private fun getGuaranteedMinimum(states: List<OreState>, timeRemaining: Int) =
+        states.maxOf { getGuaranteedMinimum(it, timeRemaining) }
+
+    private fun getGuaranteedMinimum(state: OreState, timeRemaining: Int): Int {
+        val totallyGuaranteed =
+            state.resources.getValue(OreType.GEODE) + (timeRemaining * state.robotCount(OreType.GEODE))
+
+        val turnsUntilNextGeode = turnsUntilCanAfford(state, OreType.GEODE, timeRemaining)
+        val additional = if (turnsUntilNextGeode > 0) {
+            (timeRemaining - turnsUntilNextGeode)
+        } else 0
+
+        return totallyGuaranteed + additional
+    }
+
+    private fun getOptimisticMaximum(state: OreState, timeRemaining: Int): Int {
+        val guaranteed = getGuaranteedMinimum(state, timeRemaining)
+
+        var optimisticTimeRemaining = timeRemaining - 1
+        if (state.robotCount(OreType.OBSIDIAN) == 0) {
+            val obsidianCost = state.blueprint.robotCosts[OreType.GEODE]!![OreType.OBSIDIAN]!!
+            val triangle = findFirstTriangleNumberGreaterThan(obsidianCost)
+            // Still need to buy an obsidian robot
+            if (canAffordRobot(state, OreType.OBSIDIAN)) {
+                // 1 turn to buy, 1 turn to generate at least 1 obsidian
+                optimisticTimeRemaining -= (triangle + 1)
+            } else {
+                // 2 turns to buy, 1 turn to generate at least 1 obsidian
+                optimisticTimeRemaining -= (triangle + 2)
+            }
+        }
+
+        if (!canAffordRobot(state, OreType.GEODE)) {
+            // 1 turn to afford, 1 turn to buy
+            optimisticTimeRemaining -= 2
+        } else {
+            // 1 turn to buy
+            optimisticTimeRemaining -= 1
+        }
+
+        // Assume we buy a geode robot for every turn that's remaining. Then we get the nth triangle number of extra geodes
+        val extras = if (optimisticTimeRemaining > 0) nthTriangleNumber(optimisticTimeRemaining) else 0
+        return guaranteed + extras
+    }
+
+    private fun findFirstTriangleNumberGreaterThan(required: Int): Int {
+        (1..100).forEach { number ->
+            if (nthTriangleNumber(number) >= required) {
+                return number
+            }
+        }
+
+        return -1
+    }
+
+    private fun nthTriangleNumber(n: Int) = (n * (n + 1)) / 2
 
     private fun takeAllSteps(states: List<OreState>, time: Int) =
         states.flatMap(::makeAllChoices).map { gainResources(it, time) }.distinct()
@@ -96,14 +166,33 @@ class Day19 : Solver {
         return currentOre - minCostThisTurn + production >= maxCost
     }
 
-    private fun shouldBuyRobot(state: OreState, type: OreType): Boolean {
-        val costs = state.blueprint.robotCosts.getValue(type)
-        val canAfford = costs.all { (oreType, amount) ->
-            state.resources.getOrDefault(oreType, 0) >= amount
+    private fun shouldBuyRobot(state: OreState, type: OreType) =
+        canAffordRobot(state, type) && getMaxRobotsWorthBuying(state, type) > 0
+
+    private fun turnsUntilCanAfford(state: OreState, robot: OreType, totalTime: Int): Int {
+        var time = 1
+        var currentState = state
+        while (time <= totalTime) {
+            if (canAffordRobot(currentState, robot)) {
+                return time
+            }
+
+            currentState = gainResources(currentState, 100)
+            time++
         }
 
-        return canAfford && getMaxRobotsWorthBuying(state, type) > 0
+        return -1
     }
+
+    private fun canAffordRobot(state: OreState, robot: OreType): Boolean {
+        val costs = state.blueprint.robotCosts.getValue(robot)
+        return costs.all { (oreType, amount) ->
+            state.resources.getOrDefault(oreType, 0) >= amount
+        }
+    }
+
+    private fun OreState.robotCount(robotType: OreType): Int =
+        robots.getOrDefault(robotType, 0)
 
     private fun getMaxRobotsWorthBuying(state: OreState, robotType: OreType): Int {
         if (robotType == OreType.GEODE) {
@@ -127,10 +216,7 @@ class Day19 : Solver {
 
     private fun gainResources(state: OreState, timeRemaining: Int): OreState {
         val newResources = state.resources.mapValues { (oreType, amount) ->
-            val robots = state.robots[oreType]
-            val newAmount = if (robots != null) {
-                amount + robots
-            } else amount
+            val newAmount = amount + state.robotCount(oreType)
 
             // Throw away resources that we definitely don't need, so we can .distinct() out more "equivalent" states
             val maxNeeded = calculateMaxNeeded(state, oreType, timeRemaining)
@@ -139,7 +225,7 @@ class Day19 : Solver {
 
         val pendingBot = state.pendingRobot
         val newRobots = if (pendingBot == null) state.robots else {
-            val existing = state.robots.getOrDefault(pendingBot, 0)
+            val existing = state.robotCount(pendingBot)
             state.robots.plus(pendingBot to existing + 1)
         }
 
