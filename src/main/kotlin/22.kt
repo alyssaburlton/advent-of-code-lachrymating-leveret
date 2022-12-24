@@ -13,66 +13,70 @@ class Day22 : Solver {
     override fun partB() = tracePath(::wrapAroundCube)
 
     private fun tracePath(wrapFunction: (Point, Direction) -> Pair<Point, Direction>): Int {
-        val startX = pointMap.filter { entry -> entry.key.y == 0 && entry.value == "." }.minOf { it.key.x }
-        val startPos = Point(startX, 0)
-
-        var currentPos = startPos
-        var currentDirection = Point(1, 0)
-        val instructionsToGo = instructions.toMutableList()
-        while (instructionsToGo.isNotEmpty()) {
-            val instruction = instructionsToGo.removeFirst()
-            if (instruction is Int) {
-                val (newPos, newDir) = moveInDirectionB(currentPos, currentDirection, instruction, wrapFunction)
-                currentPos = newPos
-                currentDirection = newDir
-            } else if (instruction == 'L') {
-                currentDirection = turnLeft(currentDirection)
-            } else if (instruction == 'R') {
-                currentDirection = turnRight(currentDirection)
-            } else if (instruction == "E") {
-                // println("END")
-            } else {
-                throw Error("Unexpected: $instruction")
-            }
-
-            // println("$currentPos, facing $currentDirection")
-        }
-
-        return (1000 * (currentPos.y + 1)) + (4 * (currentPos.x + 1)) + scoreFacing(currentDirection)
+        val startPos = pointMap.filter { entry -> entry.key.y == 0 && entry.value == "." }.keys.minBy { it.x }
+        return processInstructions(startPos, Point(1, 0), instructions, wrapFunction)
     }
 
-    private fun moveInDirectionB(
-        startPos: Point,
-        startDirection: Direction,
-        amount: Int,
+    private tailrec fun processInstructions(
+        position: Point,
+        direction: Direction,
+        instructions: List<Any>,
         wrapFunction: (Point, Direction) -> Pair<Point, Direction>
-    ): Pair<Point, Direction> {
-        var hitWall = false
-        var amountMoved = 0
-        var pos = startPos
-        var direction = startDirection
-
-        while (!hitWall && amountMoved < amount) {
-            var nextPos = Point(pos.x + direction.x, pos.y + direction.y)
-            var currentDirection = direction
-            val value = pointMap[nextPos]
-            if (value == null || value == " ") {
-                // wrap around
-                val wrapResult = wrapFunction(pos, direction)
-                nextPos = wrapResult.first
-                currentDirection = wrapResult.second
-            }
-
-            if (pointMap[nextPos] == "#") {
-                hitWall = true
-            } else {
-                pos = nextPos
-                direction = currentDirection
-                amountMoved++
-            }
+    ): Int {
+        if (instructions.isEmpty()) {
+            return (1000 * (position.y + 1)) + (4 * (position.x + 1)) + scoreFacing(direction)
         }
 
-        return pos to direction
+        val instruction = instructions.first()
+        val (newPosition, newDirection) = if (instruction is Int) {
+            moveInDirection(position, direction, instruction, wrapFunction)
+        } else if (instruction == 'L') {
+            position to turnLeft(direction)
+        } else {
+            position to turnRight(direction)
+        }
+
+        return processInstructions(newPosition, newDirection, instructions.drop(1), wrapFunction)
+    }
+
+    private tailrec fun moveInDirection(
+        position: Point,
+        direction: Direction,
+        stepsRemaining: Int,
+        wrapFunction: (Point, Direction) -> Pair<Point, Direction>
+    ): Pair<Point, Direction> {
+        if (stepsRemaining == 0) {
+            return position to direction
+        }
+
+        val (newPosition, newDirection) = takeStep(position, direction, wrapFunction)
+        if (newPosition == position) {
+            return position to direction
+        }
+
+        return moveInDirection(newPosition, newDirection, stepsRemaining - 1, wrapFunction)
+    }
+
+    private fun takeStep(
+        position: Point,
+        direction: Direction,
+        wrapFunction: (Point, Direction) -> Pair<Point, Direction>
+    ): Pair<Point, Direction> {
+        val nextPos = position + direction
+        val value = pointMap[nextPos]
+
+        return if (value == "#") {
+            position to direction
+        } else if (value == null || value == " ") {
+            val (newPosition, newDirection) = wrapFunction(position, direction)
+            if (pointMap[newPosition] == "#") {
+                position to direction
+            } else {
+                newPosition to newDirection
+            }
+        } else {
+            nextPos to direction
+        }
     }
 
     private fun wrapAroundSimple(currentPos: Point, direction: Direction): Pair<Point, Direction> {
@@ -138,9 +142,9 @@ class Day22 : Solver {
 
     private fun parseInstructions(instructionStr: String): List<Any> {
         val numbers = instructionStr.split("L").flatMap { it.split("R") }.map { it.toInt() }
-        val instructions = instructionStr.filter { it == 'L' || it == 'R' }.toCharArray().toList() + "E"
+        val instructions = instructionStr.filter { it == 'L' || it == 'R' }.toCharArray().toList() + null
 
-        return (numbers zip instructions).flatMap { listOf(it.first, it.second) }
+        return (numbers zip instructions).flatMap { listOf(it.first, it.second) }.mapNotNull { it }
     }
 
     /**
