@@ -23,12 +23,9 @@ class Day25Test {
 
     @Test
     fun `Round trip`() {
-//        val day = Day25()
-//        (1..10000L).forEach {
-//            println("Checking $it")
-//            day.snafuToDecimal(day.decimalToSnafu(it)) shouldBe it
-//        }
-
-        // Day25().decimalToSnafu(12)
+        val day = Day25()
+        (1..10000L).forEach {
+            day.snafuToDecimal(day.decimalToSnafu(it)) shouldBe it
+        }
     }
 }

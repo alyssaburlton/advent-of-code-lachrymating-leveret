@@ -130,6 +130,11 @@ class AnswersTest {
         Day24().testDay(242, 720)
     }
 
+    @Test
+    fun `Day 25`() {
+        Day25().testDay("2=-0=01----22-0-1-10", "Merry Christmas!")
+    }
+
     private fun Solver.testDay(outputA: Any, outputB: Any) {
         partA() shouldBe outputA
         partB() shouldBe outputB

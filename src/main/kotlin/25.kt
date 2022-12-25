@@ -1,6 +1,4 @@
-import kotlin.math.abs
 import kotlin.math.pow
-import kotlin.math.sign
 
 class Day25 : Solver {
     override val day = 25
@@ -13,6 +11,7 @@ class Day25 : Solver {
         '-' to -1,
         '=' to -2
     )
+    private val inverseSnafuMap = snafuMap.map { it.value to it.key }.toMap()
 
     override fun partA() = input.sumOf(::snafuToDecimal).let(::decimalToSnafu)
 
@@ -24,40 +23,18 @@ class Day25 : Solver {
             snafuMap.getValue(char) * 5.0.pow(power)
         }.sum().toLong()
 
-    fun decimalToSnafu(number: Long): String {
-        val map = decimalToSnafuRecursive(-number, emptyMap())
-        val maxPower = map.keys.max()
+    fun decimalToSnafu(number: Long) = decimalToSnafuRecursive(number, "")
 
-        return (maxPower downTo 0).joinToString("") {
-            val count = map[it] ?: 0
-            if (count == -2) "=" else if (count == -1) "-" else count.toString()
-        }
-    }
-
-    private tailrec fun decimalToSnafuRecursive(amountRemaining: Long, powersSoFar: Map<Int, Int>): Map<Int, Int> {
+    private tailrec fun decimalToSnafuRecursive(amountRemaining: Long, stringSoFar: String): String {
         if (amountRemaining == 0L) {
-            return powersSoFar
+            return stringSoFar
         }
 
-        val minPowerSoFar = powersSoFar.keys.minOrNull() ?: 100
+        val positiveMod = amountRemaining.mod(5)
+        val mod = if (positiveMod > 2) positiveMod - 5 else positiveMod
+        val newCharacter = inverseSnafuMap.getValue(mod)
 
-        val power = findRelevantPowerOfFive(amountRemaining, minPowerSoFar)
-
-        val diff2 = (2 * 5.0.pow(power)) - abs(amountRemaining)
-        val diff = 5.0.pow(power) - abs(amountRemaining)
-        val amountToUse = if (abs(diff2) < abs(diff)) 2 else 1
-
-        val sign = amountRemaining.sign
-        val newPair = power to (-sign) * amountToUse
-
-        return decimalToSnafuRecursive(
-            amountRemaining + ((-sign) * amountToUse * 5.0.pow(power)).toLong(),
-            powersSoFar + newPair
-        )
+        val newRemainder = (amountRemaining - mod) / 5
+        return decimalToSnafuRecursive(newRemainder, newCharacter + stringSoFar)
     }
-
-    private fun findRelevantPowerOfFive(amountRemaining: Long, maxPower: Int = 100) =
-        (0 until maxPower).firstOrNull { n ->
-            2 * 5.0.pow(n) >= abs(amountRemaining)
-        } ?: (maxPower - 1)
 }
