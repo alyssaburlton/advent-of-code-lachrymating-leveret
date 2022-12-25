@@ -13,7 +13,7 @@ class Day25 : Solver {
     )
 
     override fun partA(): Any {
-        println(snafuToDecimal("12-0=01----22-0-1-10"))
+        println(snafuToDecimal("2=-0=01----22-0-1-10"))
         return input.sum()
     }
 
