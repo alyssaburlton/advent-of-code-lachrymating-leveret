@@ -25,42 +25,33 @@ class Day12 : Solver {
         stepValidator: (Int, Int) -> Boolean,
         stopCondition: (Point) -> Boolean
     ) = explorePaths(
-        listOf(listOf(startingPosition)),
+        listOf(startingPosition),
         setOf(startingPosition),
         stepValidator,
         stopCondition
-    ).minOf { it.size - 1 }
+    )
 
     private fun explorePaths(
-        currentPaths: List<List<Point>>,
+        currentPoints: List<Point>,
         visited: Set<Point>,
         stepValidator: (Int, Int) -> Boolean,
-        stopCondition: (Point) -> Boolean
-    ): List<List<Point>> {
-        if (currentPaths.all { stopCondition(it.last()) }) {
-            return currentPaths
+        stopCondition: (Point) -> Boolean,
+        steps: Int = 0
+    ): Int {
+        if (currentPoints.any { stopCondition(it) }) {
+            return steps
         }
 
-        val newPaths = currentPaths.flatMap { path -> takeAllSteps(path, visited, stepValidator, stopCondition) }
-        val prunedPaths = newPaths.distinctBy { it.last() }
-        val pointsVisited = prunedPaths.map { it.last() }
-        return explorePaths(prunedPaths, visited + pointsVisited, stepValidator, stopCondition)
+        val newPoints = currentPoints.flatMap { point -> takeAllSteps(point, visited, stepValidator) }.distinct()
+        return explorePaths(newPoints, visited + newPoints, stepValidator, stopCondition, steps + 1)
     }
 
     private fun takeAllSteps(
-        path: List<Point>,
+        point: Point,
         visited: Set<Point>,
         stepValidator: (Int, Int) -> Boolean,
-        stopCondition: (Point) -> Boolean
-    ): List<List<Point>> {
-        val currentPoint = path.last()
-        if (stopCondition(currentPoint)) {
-            return listOf(path)
+    ) = grid.neighbours(point)
+        .filter { neighbour ->
+            !visited.contains(neighbour) && stepValidator(grid.getValue(point), grid.getValue(neighbour))
         }
-
-        return grid.neighbours(currentPoint)
-            .filter { neighbour ->
-                !visited.contains(neighbour) && stepValidator(grid.getValue(currentPoint), grid.getValue(neighbour))
-            }.map { path + it }
-    }
 }
