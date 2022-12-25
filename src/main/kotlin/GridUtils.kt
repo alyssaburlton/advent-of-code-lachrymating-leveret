@@ -4,7 +4,10 @@ data class Point(val x: Int, val y: Int)
 data class PointL(val x: Long, val y: Long)
 data class Point3D(val x: Int, val y: Int, val z: Int)
 
+typealias Direction = Point
+
 operator fun Point.plus(other: Point) = Point(x + other.x, y + other.y)
+operator fun Point.unaryMinus() = Point(-x, -y)
 
 fun Point3D.neighbours() = listOf(
     Point3D(x, y - 1, z),
@@ -31,7 +34,7 @@ fun Point.neighboursWithDiagonals() = neighbours() + setOf(
     Point(x + 1, y + 1)
 )
 
-fun readStringGrid(filename: String): Grid<String> {
+fun readStringGrid(filename: String): FixedGrid<String> {
     val list = readStringList(filename)
     return parseGrid(list)
 }
@@ -46,23 +49,16 @@ fun parsePointMap(lines: List<String>): Map<Point, String> {
     return mapOf(*pairs.toTypedArray())
 }
 
-fun parseGrid(gridLines: List<String>): Grid<String> {
+fun parseGrid(gridLines: List<String>): FixedGrid<String> {
     val rowLengths = gridLines.map { it.length }
     if (rowLengths.distinct().size != 1) {
         throw Error("Uneven row sizes in grid: $rowLengths")
     }
 
-    val rowLength = rowLengths.max()
-    val pairs = (0 until rowLength).flatMap { x ->
-        gridLines.indices.map { y ->
-            Point(x, y) to gridLines[y][x].toString()
-        }
-    }
-
-    return Grid(mapOf(*pairs.toTypedArray()))
+    return FixedGrid(parsePointMap(gridLines))
 }
 
-class Grid<T>(val map: Map<Point, T>) {
+class FixedGrid<T>(val map: Map<Point, T>) {
     val xMax = map.keys.maxOf { it.x }
     val xMin = map.keys.minOf { it.x }
     val yMax = map.keys.maxOf { it.y }
@@ -75,27 +71,18 @@ class Grid<T>(val map: Map<Point, T>) {
 
     fun getValue(pt: Point) = map.getValue(pt)
 
-    fun setValue(pt: Point, value: T): Grid<T> {
-        val newMap = map + (pt to value)
-        return Grid(newMap)
-    }
-
     fun prettyString() = (yMin..yMax).joinToString("\n") { y ->
         (xMin..xMax).joinToString("") { x -> map.getValue(Point(x, y)).toString() }
     }
 
-    fun print() {
-        println(prettyString())
-    }
-
-    fun <NewType> transformValues(transformer: (T) -> NewType): Grid<NewType> =
-        Grid(map.mapValues { entry -> transformer(entry.value) })
+    fun <NewType> transformValues(transformer: (T) -> NewType): FixedGrid<NewType> =
+        FixedGrid(map.mapValues { entry -> transformer(entry.value) })
 
     fun neighbours(pt: Point) =
         pt.neighbours().filter(map::containsKey)
 
-    fun transpose(): Grid<T> =
-        Grid(map.mapKeys { (key, _) -> Point(key.y, key.x) })
+    fun transpose(): FixedGrid<T> =
+        FixedGrid(map.mapKeys { (key, _) -> Point(key.y, key.x) })
 
     private fun computeRows() =
         (yMin..yMax).map { y ->

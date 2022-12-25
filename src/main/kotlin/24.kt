@@ -5,8 +5,8 @@ class Day24 : Solver {
     override val day = 24
 
     private val grid = readStringGrid("24")
-    private val start = grid.map.entries.first { it.value == "." && it.key.y == grid.yMin }.key
-    private val end = grid.map.entries.first { it.value == "." && it.key.y == grid.yMax }.key
+    private val start = grid.entries.first { it.value == "." && it.key.y == grid.yMin }.key
+    private val end = grid.entries.first { it.value == "." && it.key.y == grid.yMax }.key
     private val walls = grid.map.filter { it.value == "#" }.keys
     private val startBlizzards = parseBlizzards()
 

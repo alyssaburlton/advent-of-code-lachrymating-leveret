@@ -1,5 +1,3 @@
-typealias Direction = Point
-
 class Day22 : Solver {
     override val day = 22
 
@@ -111,7 +109,7 @@ class Day22 : Solver {
 
     private fun CubeWrapRule.computeNewDirection(oldDirection: Direction): Direction {
         val directionToInvert = if (oldDirection == directions.first) directions.second else directions.first
-        return Direction(-directionToInvert.x, -directionToInvert.y)
+        return -directionToInvert
     }
 
     fun wrapAroundCube(currentPos: Point, direction: Point): Pair<Point, Direction> {

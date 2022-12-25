@@ -1,3 +1,4 @@
+@Suppress("UNCHECKED_CAST")
 class Day13NoParse : Solver {
     override val day = 13
 
