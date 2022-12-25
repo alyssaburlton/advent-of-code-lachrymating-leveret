@@ -7,7 +7,7 @@ data class VolcanoState(
 
 data class VolcanoStateHash(val personStates: Set<Valve?>, val released: Set<Pair<Int, Valve>>)
 
-private const val NAIVE_SEARCH_MAX_TO_KEEP = 1000
+private const val NAIVE_SEARCH_MAX_TO_KEEP = 500
 
 class Day16 : Solver {
     override val day = 16
@@ -28,8 +28,21 @@ class Day16 : Solver {
     private fun canReleaseValve(state: VolcanoState, valve: Valve) =
         valve.flowRate > 0 && !state.releasedValves.any { it.second == valve }
 
+    /**
+     * Leaving a valve to open a neighbour before coming back costs at least 3 turns.
+     * Leaving a valve to open a further valve before coming back costs at least 5 turns.
+     *
+     * If there is not another unopened valve with a value > this number of turns, this isn't worth it
+     */
+    private fun mustReleaseValve(state: VolcanoState, valve: Valve) =
+        valve.flowRate >= (state.releasableNeighbours(valve).maxOfOrNull { it.flowRate - 4 }
+            ?: 0) && valve.flowRate >= releasableValves(state).maxOf { it.flowRate } - 6
+
     private fun releasableValves(state: VolcanoState) =
         releasableValves.filter { canReleaseValve(state, it) }
+
+    private fun VolcanoState.releasableNeighbours(valve: Valve) =
+        valvesMap.getValue(valve).filter { canReleaseValve(this, it) }
 
     private fun countTotalReleased(state: VolcanoState) = state.releasedValves.sumOf {
         it.first * it.second.flowRate
@@ -61,7 +74,8 @@ class Day16 : Solver {
         exploreRecursively(
             listOf(startingState),
             findNaiveMaximum(startingState, startingTime),
-            startingTime
+            startingTime,
+            true
         ) { states, highScore, timeRemaining ->
             states.filter { canSurpassMax(timeRemaining, it, highScore) }
         }
@@ -70,18 +84,21 @@ class Day16 : Solver {
         states: List<VolcanoState>,
         highScore: Int,
         timeRemaining: Int,
-        stateReducer: (List<VolcanoState>, Int, Int) -> List<VolcanoState>
+        log: Boolean = false,
+        stateReducer: (List<VolcanoState>, Int, Int) -> List<VolcanoState>,
     ): Int {
         if (timeRemaining == 0 || states.isEmpty()) {
             return highScore
         }
 
         val newStates = takeMoves(timeRemaining, states)
+        if (log) println(newStates.size)
         val newHighScore = maxOf(highScore, newStates.maxOf(::countTotalReleased))
         return exploreRecursively(
             stateReducer(newStates, newHighScore, timeRemaining),
             newHighScore,
             timeRemaining - 1,
+            log,
             stateReducer
         )
     }
@@ -122,11 +139,17 @@ class Day16 : Solver {
             .getValue(currentValve)
             .map { newValve -> personUpdater(state, newValve) }
 
-        return if (canReleaseValve(state, currentValve)) {
-            val newReleased = state.releasedValves.plus(Pair(timeRemaining, currentValve))
-            movements + state.copy(releasedValves = newReleased)
-        } else {
+        return if (!canReleaseValve(state, currentValve)) {
             movements
+        } else {
+            val newReleased = state.releasedValves.plus(Pair(timeRemaining, currentValve))
+            val releasedState = state.copy(releasedValves = newReleased)
+
+            if (mustReleaseValve(state, currentValve)) {
+                listOf(releasedState)
+            } else {
+                movements + releasedState
+            }
         }
     }
 
