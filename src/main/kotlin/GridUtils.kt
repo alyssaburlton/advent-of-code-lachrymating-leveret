@@ -18,11 +18,11 @@ fun Point3D.neighbours() = listOf(
     Point3D(x, y, z - 1)
 )
 
-fun Point.neighbours() = setOf(
-    Point(x, y - 1),
-    Point(x, y + 1),
-    Point(x - 1, y),
-    Point(x + 1, y)
+fun Point.neighbours(distance: Int = 1) = setOf(
+    Point(x, y - distance),
+    Point(x, y + distance),
+    Point(x - distance, y),
+    Point(x + distance, y)
 )
 
 fun Point.stepDistance(other: Point) = abs(x - other.x) + abs(y - other.y)
