@@ -79,8 +79,7 @@ class Day16 : Solver {
         exploreRecursively(
             listOf(startingState),
             findNaiveMaximum(startingState, startingTime),
-            startingTime,
-            true
+            startingTime
         ) { states, highScore, timeRemaining ->
             states.filter { canSurpassMax(timeRemaining, it, highScore) }
         }
@@ -89,7 +88,6 @@ class Day16 : Solver {
         states: List<VolcanoState>,
         highScore: Int,
         timeRemaining: Int,
-        log: Boolean = false,
         stateReducer: (List<VolcanoState>, Int, Int) -> List<VolcanoState>,
     ): Int {
         if (timeRemaining == 0 || states.isEmpty()) {
@@ -97,13 +95,11 @@ class Day16 : Solver {
         }
 
         val newStates = takeMoves(timeRemaining, states)
-        if (log) println(newStates.size)
         val newHighScore = maxOf(highScore, newStates.maxOf(::countTotalReleased))
         return exploreRecursively(
             stateReducer(newStates, newHighScore, timeRemaining),
             newHighScore,
             timeRemaining - 1,
-            log,
             stateReducer
         )
     }
@@ -118,7 +114,7 @@ class Day16 : Solver {
 
     private fun takeAllPossibleMoves(timeRemaining: Int, state: VolcanoState): List<VolcanoState> {
         if (releasedAllValves(state)) {
-            return listOf(state)
+            return emptyList()
         }
 
         val myMoves = getValidMoves(state, timeRemaining, state.me, ::updateMyState)
