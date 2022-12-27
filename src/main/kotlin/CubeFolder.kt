@@ -1,3 +1,29 @@
+fun foldUpNet(points: Map<Point, String>): Map<Point, Point3D> {
+    val foldLines = findFoldLines(points)
+
+    val originalCubePoints = points.cubePoints()
+    val cubeMap = originalCubePoints.associateWith { Point3D(it.x, it.y, 0) }
+
+    return foldLines.fold(cubeMap) { currentPoints, foldLine ->
+        val allPointsToFold = computePointsToMove(originalCubePoints, foldLine)
+        val foldPointsIn3Space = foldLine.points.map { currentPoints[it]!! }
+
+        // Actually need to do some folding here...
+
+        currentPoints
+    }
+}
+
+private fun computePointsToMove(cubePoints: Set<Point>, foldLine: FoldLine): List<Point> {
+    return if (foldLine.type == FoldType.VERTICAL) {
+        val y = foldLine.points.first().y
+        cubePoints.filter { it.y <= y }
+    } else {
+        val x = foldLine.points.first().x
+        cubePoints.filter { it.x <= x }
+    }
+}
+
 fun getSideLength(points: Map<Point, String>): Int {
     val cubePts = points.cubePoints()
     val xMin = cubePts.minOf { it.x }
@@ -39,7 +65,7 @@ fun findFoldLines(points: Map<Point, String>): Set<FoldLine> {
 }
 
 /**
- * For VERTICAL folds, return the bottom line of the top face
+ * For VERTICAL folds, return the bottom line of the top face. We'll fold everything from here upwards
  *
  *   XX
  *   XX <- Return this line
@@ -47,7 +73,7 @@ fun findFoldLines(points: Map<Point, String>): Set<FoldLine> {
  *   XX
  *   XX
  *
- * For HORIZONTAL folds, return the right line of the left face:
+ * For HORIZONTAL folds, return the right line of the left face. We'll fold everything from here leftwards
  *
  *   Return this line
  *   |
