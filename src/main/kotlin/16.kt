@@ -35,8 +35,8 @@ class Day16 : Solver {
      * If there is not another unopened valve with a value > this number of turns, this isn't worth it
      */
     private fun mustReleaseValve(state: VolcanoState, valve: Valve) =
-        valve.flowRate >= (state.releasableNeighbours(valve).maxOfOrNull { it.flowRate - 4 }
-            ?: 0) && valve.flowRate >= releasableValves(state).maxOf { it.flowRate } - 6
+        valve.flowRate > (state.releasableNeighbours(valve).maxOfOrNull { it.flowRate - 3 }
+            ?: 0) && valve.flowRate > releasableValves(state).maxOf { it.flowRate } - 5
 
     private fun releasableValves(state: VolcanoState) =
         releasableValves.filter { canReleaseValve(state, it) }
@@ -55,8 +55,10 @@ class Day16 : Solver {
         val currentScore = countTotalReleased(currentState)
         val currentValves = listOfNotNull(currentState.myValve, currentState.elephantValve)
         val canReleaseNow = currentValves.any { canReleaseValve(currentState, it) }
+        val releasableNeighbours = currentValves.flatMap { currentState.releasableNeighbours(it) }
 
-        val firstReleaseTime = if (canReleaseNow) timeRemaining else timeRemaining - 1
+        val firstReleaseTime =
+            if (canReleaseNow) timeRemaining else if (releasableNeighbours.isNotEmpty()) timeRemaining - 1 else timeRemaining - 2
         val optimisticReleaseTimes = (firstReleaseTime downTo 0 step 2)
 
         return currentScore + releasableValves(currentState)
