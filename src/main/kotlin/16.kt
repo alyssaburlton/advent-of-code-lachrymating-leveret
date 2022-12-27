@@ -1,13 +1,14 @@
 data class Valve(val room: String, val flowRate: Int)
+data class Person(val valve: Valve, val visitedValves: Set<Valve>)
 data class VolcanoState(
-    val myValve: Valve,
-    val elephantValve: Valve?,
+    val me: Person,
+    val elephant: Person?,
     val releasedValves: Set<Pair<Int, Valve>>
 )
 
 data class VolcanoStateHash(val personStates: Set<Valve?>, val released: Set<Pair<Int, Valve>>)
 
-private const val NAIVE_SEARCH_MAX_TO_KEEP = 500
+private const val NAIVE_SEARCH_MAX_TO_KEEP = 100
 
 class Day16 : Solver {
     override val day = 16
@@ -23,7 +24,9 @@ class Day16 : Solver {
         runSimulation(initialState(true), 25)
 
     private fun initialState(withElephant: Boolean) =
-        VolcanoState(startingValve, if (withElephant) startingValve else null, emptySet())
+        VolcanoState(initialPerson(), if (withElephant) initialPerson() else null, emptySet())
+
+    private fun initialPerson() = Person(startingValve, emptySet())
 
     private fun canReleaseValve(state: VolcanoState, valve: Valve) =
         valve.flowRate > 0 && !state.releasedValves.any { it.second == valve }
@@ -53,7 +56,7 @@ class Day16 : Solver {
 
     private fun getTheoreticalMax(timeRemaining: Int, currentState: VolcanoState): Int {
         val currentScore = countTotalReleased(currentState)
-        val currentValves = listOfNotNull(currentState.myValve, currentState.elephantValve)
+        val currentValves = listOfNotNull(currentState.me.valve, currentState.elephant?.valve)
         val canReleaseNow = currentValves.any { canReleaseValve(currentState, it) }
         val releasableNeighbours = currentValves.flatMap { currentState.releasableNeighbours(it) }
 
@@ -106,7 +109,7 @@ class Day16 : Solver {
     }
 
     private fun VolcanoState.toDistinctHash() =
-        VolcanoStateHash(setOf(myValve, elephantValve), releasedValves)
+        VolcanoStateHash(setOf(me.valve, elephant?.valve), releasedValves)
 
     private fun takeMoves(timeRemaining: Int, states: List<VolcanoState>) =
         states.flatMap { takeAllPossibleMoves(timeRemaining, it) }.distinctBy { it.toDistinctHash() }
@@ -118,13 +121,13 @@ class Day16 : Solver {
             return listOf(state)
         }
 
-        val myMoves = getValidMoves(state, timeRemaining, state.myValve, ::updateMyState)
-        return state.elephantValve?.let { elephantValve ->
+        val myMoves = getValidMoves(state, timeRemaining, state.me, ::updateMyState)
+        return state.elephant?.let { elephant ->
             myMoves.flatMap {
                 getValidMoves(
                     it,
                     timeRemaining,
-                    elephantValve,
+                    elephant,
                     ::updateElephantState
                 )
             }
@@ -134,20 +137,21 @@ class Day16 : Solver {
     private fun getValidMoves(
         state: VolcanoState,
         timeRemaining: Int,
-        currentValve: Valve,
+        currentPerson: Person,
         personUpdater: (VolcanoState, Valve) -> VolcanoState
     ): List<VolcanoState> {
         val movements = valvesMap
-            .getValue(currentValve)
+            .getValue(currentPerson.valve)
+            .filterNot(currentPerson.visitedValves::contains)
             .map { newValve -> personUpdater(state, newValve) }
 
-        return if (!canReleaseValve(state, currentValve)) {
+        return if (!canReleaseValve(state, currentPerson.valve)) {
             movements
         } else {
-            val newReleased = state.releasedValves.plus(Pair(timeRemaining, currentValve))
-            val releasedState = state.copy(releasedValves = newReleased)
+            val newReleased = state.releasedValves.plus(Pair(timeRemaining, currentPerson.valve))
+            val releasedState = personUpdater(state.copy(releasedValves = newReleased), currentPerson.valve)
 
-            if (mustReleaseValve(state, currentValve)) {
+            if (mustReleaseValve(state, currentPerson.valve)) {
                 listOf(releasedState)
             } else {
                 movements + releasedState
@@ -155,11 +159,16 @@ class Day16 : Solver {
         }
     }
 
-    private fun updateMyState(state: VolcanoState, myValve: Valve): VolcanoState =
-        state.copy(myValve = myValve)
+    private fun updateMyState(state: VolcanoState, myValve: Valve): VolcanoState {
+        val newVisited = if (myValve == state.me.valve) emptySet() else state.me.visitedValves + state.me.valve
+        return state.copy(me = Person(myValve, newVisited))
+    }
 
-    private fun updateElephantState(state: VolcanoState, elephantValve: Valve): VolcanoState =
-        state.copy(elephantValve = elephantValve)
+    private fun updateElephantState(state: VolcanoState, elephantValve: Valve): VolcanoState {
+        val newVisited =
+            if (elephantValve == state.elephant!!.valve) emptySet() else state.elephant.visitedValves + state.elephant.valve
+        return state.copy(elephant = Person(elephantValve, newVisited))
+    }
 
     private fun parseValves(line: String): Pair<Valve, List<String>> {
         val match =
