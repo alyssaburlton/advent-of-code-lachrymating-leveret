@@ -53,7 +53,8 @@ class Day17(mode: SolverMode) : Solver(17, mode) {
         val (prevRocksThrown, prevHeight) = statesEncountered.getValue(toHash())
         val heightGain = height() - prevHeight
         val cycleLength = rocksDropped - prevRocksThrown
-        val multiples = (totalRocksToDrop / cycleLength) - 1
+        val multiples = (totalRocksToDrop / cycleLength) - 2
+
         return copy(
             rocksDropped = rocksDropped + (multiples * cycleLength),
             statesEncountered = emptyMap(),

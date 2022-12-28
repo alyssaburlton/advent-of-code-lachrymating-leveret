@@ -111,51 +111,61 @@ class AnswersTest {
 
     @Test
     fun `Day 16`() {
+        Day16(SolverMode.EXAMPLE).testDay(1651, 1707)
         Day16(SolverMode.REAL).testDay(1767, 2528)
     }
 
     @Test
     fun `Day 17`() {
+        Day17(SolverMode.EXAMPLE).testDay(3068, 1514285714288L)
         Day17(SolverMode.REAL).testDay(3211, 1589142857183L)
     }
 
     @Test
     fun `Day 18`() {
+        Day18(SolverMode.EXAMPLE).testDay(64, 58)
         Day18(SolverMode.REAL).testDay(3530, 2000)
     }
 
     @Test
     fun `Day 19`() {
+        Day19(SolverMode.EXAMPLE).testDay(33, 3410)
         Day19(SolverMode.REAL).testDay(1092, 3542)
     }
 
     @Test
     fun `Day 20`() {
+        Day20(SolverMode.EXAMPLE).testDay(3, 1623178306)
         Day20(SolverMode.REAL).testDay(4426, 8119137886612L)
     }
 
     @Test
     fun `Day 21`() {
+        Day21(SolverMode.EXAMPLE).testDay(152, 301)
         Day21(SolverMode.REAL).testDay(87457751482938L, 3221245824363L)
     }
 
     @Test
     fun `Day 22`() {
+        // Day22(SolverMode.EXAMPLE).testDay(6032, 5031)
         Day22(SolverMode.REAL).testDay(190066, 134170)
     }
 
     @Test
     fun `Day 23`() {
+        Day23(SolverMode.EXAMPLE).testDay(110, 20)
         Day23(SolverMode.REAL).testDay(4109, 1055)
     }
 
     @Test
     fun `Day 24`() {
+        Day24(SolverMode.EXAMPLE).testDay(18, 54)
         Day24(SolverMode.REAL).testDay(242, 720)
     }
 
     @Test
     fun `Day 25`() {
+        Day25(SolverMode.EXAMPLE).testDay("2=-1=0", "Merry Christmas!")
         Day25(SolverMode.REAL).testDay("2=-0=01----22-0-1-10", "Merry Christmas!")
     }
 

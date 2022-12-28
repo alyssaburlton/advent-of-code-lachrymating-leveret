@@ -93,7 +93,7 @@ class Day16(mode: SolverMode) : Solver(16, mode) {
         }
 
         val newStates = takeMoves(timeRemaining, states)
-        val newHighScore = maxOf(highScore, newStates.maxOf(::countTotalReleased))
+        val newHighScore = maxOf(highScore, newStates.maxOfOrNull(::countTotalReleased) ?: 0)
         return exploreRecursively(
             stateReducer(newStates, newHighScore, timeRemaining),
             newHighScore,
