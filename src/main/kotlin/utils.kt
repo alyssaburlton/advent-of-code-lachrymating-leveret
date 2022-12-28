@@ -7,7 +7,7 @@ fun readStringList(filename: String) =
     File("src/main/resources/$filename.txt").readLines()
 
 fun readGroupedList(filename: String): List<List<String>> =
-    File("src/main/resources/$filename.txt").readText().split("\n\n").map { it.split("\n") }
+    File("src/main/resources/$filename.txt").readText().trimEnd().split("\n\n").map { it.split("\n") }
 
 fun readIntegerGroupedList(filename: String) =
     readGroupedList(filename).map { group -> group.map { it.toInt() } }

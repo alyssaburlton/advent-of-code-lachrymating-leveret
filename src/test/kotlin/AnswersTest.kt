@@ -4,26 +4,31 @@ import org.junit.jupiter.api.Test
 class AnswersTest {
     @Test
     fun `Day 1`() {
+        Day1(SolverMode.EXAMPLE).testDay(24000, 45000)
         Day1(SolverMode.REAL).testDay(74711, 209481)
     }
 
     @Test
     fun `Day 2`() {
+        Day2(SolverMode.EXAMPLE).testDay(15, 12)
         Day2(SolverMode.REAL).testDay(12794, 14979)
     }
 
     @Test
     fun `Day 3`() {
+        Day3(SolverMode.EXAMPLE).testDay(157, 70)
         Day3(SolverMode.REAL).testDay(7826, 2577)
     }
 
     @Test
     fun `Day 4`() {
+        Day4(SolverMode.EXAMPLE).testDay(2, 4)
         Day4(SolverMode.REAL).testDay(515, 883)
     }
 
     @Test
     fun `Day 5`() {
+        Day5(SolverMode.EXAMPLE).testDay("CMZ", "MCD")
         Day5(SolverMode.REAL).testDay("VPCDMSLWJ", "TPWCGNCCG")
     }
 
