@@ -41,10 +41,10 @@ class Day15(mode: SolverMode) : Solver(15, mode) {
         else if (xMax <= currentMax)
             0
         else
-            xMax - currentMax + 1
+            xMax - currentMax
 
     private fun getBeaconsForRow() =
-        sensors.map(Sensor::beaconPoint).filter { it.y == inputParams.yCoordPartA }.map(Point::x)
+        sensors.map(Sensor::beaconPoint).filter { it.y == inputParams.yCoordPartA }.distinct()
 
     private fun getSortedSensorRangesForRow() = sensors.map { sensor ->
         val xRadius = sensor.range - abs(sensor.sensorPoint.y - inputParams.yCoordPartA)
