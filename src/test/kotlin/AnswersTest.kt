@@ -34,26 +34,40 @@ class AnswersTest {
 
     @Test
     fun `Day 6`() {
+        Day6(SolverMode.EXAMPLE).testDay(7, 19)
         Day6(SolverMode.REAL).testDay(1343, 2193)
     }
 
     @Test
     fun `Day 7`() {
+        Day7(SolverMode.EXAMPLE).testDay(95437, 24933642)
         Day7(SolverMode.REAL).testDay(1792222, 1112963)
     }
 
     @Test
     fun `Day 8`() {
+        Day8(SolverMode.EXAMPLE).testDay(21, 8)
         Day8(SolverMode.REAL).testDay(1672, 327180)
     }
 
     @Test
     fun `Day 9`() {
+        Day9(SolverMode.EXAMPLE).testDay(13, 1)
         Day9(SolverMode.REAL).testDay(6090, 2566)
     }
 
     @Test
     fun `Day 10`() {
+        Day10(SolverMode.EXAMPLE).testDay(
+            13140, """
+##  ##  ##  ##  ##  ##  ##  ##  ##  ##  
+###   ###   ###   ###   ###   ###   ### 
+####    ####    ####    ####    ####    
+#####     #####     #####     #####     
+######      ######      ######      ####
+#######       #######       #######     """
+        )
+
         Day10(SolverMode.REAL).testDay(
             13740, """
 #### #  # ###  ###  #### ####  ##  #    
