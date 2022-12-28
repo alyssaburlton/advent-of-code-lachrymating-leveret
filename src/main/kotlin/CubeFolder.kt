@@ -1,16 +1,31 @@
 fun foldUpNet(points: Map<Point, String>): Map<Point, Point3D> {
     val foldLines = findFoldLines(points)
 
+    val verticalFolds = foldLines.filter { it.type == FoldType.VERTICAL }.sortedBy { it.points.first().y }
+    val horizontalFolds = foldLines.filter { it.type == FoldType.HORIZONTAL }.sortedBy { it.points.first().x }
+
     val originalCubePoints = points.cubePoints()
     val cubeMap = originalCubePoints.associateWith { Point3D(it.x, it.y, 0) }
 
-    return foldLines.fold(cubeMap) { currentPoints, foldLine ->
-        val allPointsToFold = computePointsToMove(originalCubePoints, foldLine)
-        val foldPointsIn3Space = foldLine.points.map { currentPoints[it]!! }
+    return (verticalFolds + horizontalFolds).fold(cubeMap) { currentNetToCubePts, foldLine ->
+        println(currentNetToCubePts)
+        println("Processing $foldLine")
+        val netPointsToFold = computePointsToMove(originalCubePoints, foldLine)
+        val foldPointsIn3Space = foldLine.points.map { currentNetToCubePts[it]!! }
 
-        // Actually need to do some folding here...
+        if (foldLine.type == FoldType.VERTICAL) {
+            val adjustment = foldPointsIn3Space.first().y + 1
+            val updatedPts = currentNetToCubePts.filterKeys { netPointsToFold.contains(it) }
+                .mapValues { (_, value) -> Point3D(value.x, adjustment + value.z, adjustment - value.y) }
 
-        currentPoints
+            currentNetToCubePts + updatedPts
+        } else {
+            val adjustment = foldPointsIn3Space.first().x + 1
+            val updatedPts = currentNetToCubePts.filterKeys { netPointsToFold.contains(it) }
+                .mapValues { (_, value) -> Point3D(adjustment + value.z, value.y, adjustment - value.x) }
+
+            currentNetToCubePts + updatedPts
+        }
     }
 }
 

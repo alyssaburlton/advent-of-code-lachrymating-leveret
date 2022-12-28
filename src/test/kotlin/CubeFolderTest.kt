@@ -117,4 +117,26 @@ xx
         foldLines.shouldContain(FoldLine(FoldType.HORIZONTAL, (100..149).map { Point(49, it) }))
         foldLines.shouldContain(FoldLine(FoldType.VERTICAL, (0..49).map { Point(it, 149) }))
     }
+
+    @Test
+    fun `Folding stuff`() {
+        val map = parsePointMap(
+            """
+  xxxx
+  xxxx
+  xx
+  xx
+xxxx
+xxxx
+xx
+xx
+""".split("\n")
+        )
+
+        val folded = foldUpNet(map)
+        println(folded.values)
+
+        folded.values.size shouldBe 24
+        folded.values.distinct().size shouldBe 24
+    }
 }
