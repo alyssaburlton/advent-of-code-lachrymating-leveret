@@ -1,9 +1,7 @@
-class Day20 : Solver {
-    override val day = 20
-
+class Day20(mode: SolverMode) : Solver(20, mode) {
     private data class Number(val originalIx: Int, val value: Long)
 
-    private val input = readIntegerList("20").map(Int::toLong).mapIndexed(::Number)
+    private val input = readIntegerList(filename).map(Int::toLong).mapIndexed(::Number)
     private val decryptionKey = 811589153
 
     override fun partA() = calculateGroveScore(mixList(input))

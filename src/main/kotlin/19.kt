@@ -18,10 +18,8 @@ data class OreState(
     val pendingRobot: OreType?
 )
 
-class Day19 : Solver {
-    override val day = 19
-
-    private val blueprints = readStringList("19").map(::parseBlueprint)
+class Day19(mode: SolverMode) : Solver(19, mode) {
+    private val blueprints = readStringList(filename).map(::parseBlueprint)
 
     override fun partA() = blueprints.sumOf {
         it.id * scoreBlueprint(it, 24)

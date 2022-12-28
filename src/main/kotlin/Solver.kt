@@ -1,6 +1,11 @@
-interface Solver {
-    val day: Int
+enum class SolverMode {
+    EXAMPLE,
+    REAL
+}
 
-    fun partA(): Any?
-    fun partB(): Any?
+abstract class Solver(val day: Int, val mode: SolverMode) {
+    val filename = if (mode == SolverMode.EXAMPLE) "${day}e" else "$day"
+
+    abstract fun partA(): Any?
+    abstract fun partB(): Any?
 }

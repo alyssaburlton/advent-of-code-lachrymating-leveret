@@ -8,10 +8,8 @@ sealed interface Output {
 data class FileOutput(override val index: Int, val size: Int, val name: String, val dir: Boolean) : Output
 data class CdOutput(override val index: Int, val cdArg: String) : Output
 
-class Day7 : Solver {
-    override val day = 7
-
-    private val input: List<String> = readStringList("7")
+class Day7(mode: SolverMode) : Solver(7, mode) {
+    private val input: List<String> = readStringList(filename)
     private val output = input.mapIndexedNotNull(::parseOutput)
 
     override fun partA() = parseDirectorySizes()

@@ -1,17 +1,17 @@
 import kotlin.math.abs
 
-private data class InputParameters(val filename: String, val yCoordPartA: Int, val maxX: Int, val maxY: Int)
+private data class InputParameters(val yCoordPartA: Int, val maxX: Int, val maxY: Int)
 private data class Sensor(val sensorPoint: Point, val beaconPoint: Point) {
     val range = sensorPoint.stepDistance(beaconPoint)
 }
 
-class Day15 : Solver {
-    override val day = 15
+class Day15(mode: SolverMode) : Solver(15, mode) {
+    private val inputParams = when (mode) {
+        SolverMode.EXAMPLE -> InputParameters(10, 20, 20)
+        else -> InputParameters(2000000, 4000000, 4000000)
+    }
 
-    // private val inputParams = InputParameters("15e", 10, 20, 20) // Example
-    private val inputParams = InputParameters("15", 2000000, 4000000, 4000000) // real
-
-    private val input = readStringList(inputParams.filename)
+    private val input = readStringList(filename)
     private val sensors = input.map(::parseInputLine)
 
     override fun partA() = getWhereBeaconCannotBe()

@@ -20,10 +20,8 @@ private enum class RockType {
 
 private val rockOrder = RockType.values()
 
-class Day17 : Solver {
-    override val day = 17
-
-    private val wind = readString("17").toCharArray().toList()
+class Day17(mode: SolverMode) : Solver(17, mode) {
+    private val wind = readString(filename).toCharArray().toList()
 
     override fun partA() = dropRocks(2022)
     override fun partB() = dropRocks(1000000000000L)

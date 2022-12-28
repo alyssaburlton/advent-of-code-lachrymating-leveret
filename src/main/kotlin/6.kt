@@ -1,7 +1,5 @@
-class Day6 : Solver {
-    override val day = 6
-
-    private val input: String = readString("6")
+class Day6(mode: SolverMode) : Solver(6, mode) {
+    private val input: String = readString(filename)
 
     override fun partA() = findFirstPacket(4)
 

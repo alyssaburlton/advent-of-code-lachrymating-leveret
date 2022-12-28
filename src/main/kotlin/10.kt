@@ -5,10 +5,8 @@ data class CpuState(
     val pixels: List<String>
 )
 
-class Day10 : Solver {
-    override val day = 10
-
-    private val input = readStringList("10")
+class Day10(mode: SolverMode) : Solver(10, mode) {
+    private val input = readStringList(filename)
     private val programLength = initialCpuState().pendingInstructions.size
 
     override fun partA() =

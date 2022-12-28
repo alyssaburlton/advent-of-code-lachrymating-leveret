@@ -10,10 +10,8 @@ data class VolcanoStateHash(val personStates: Set<Valve?>, val released: Set<Pai
 
 private const val NAIVE_SEARCH_MAX_TO_KEEP = 100
 
-class Day16 : Solver {
-    override val day = 16
-
-    private val valvesMap = readStringList("16").map(::parseValves).let(::getRoutedValvesMap)
+class Day16(mode: SolverMode) : Solver(16, mode) {
+    private val valvesMap = readStringList(filename).map(::parseValves).let(::getRoutedValvesMap)
     private val releasableValves = valvesMap.keys.filter { it.flowRate > 0 }
     private val startingValve = valvesMap.keys.first { it.room == "AA" }
 

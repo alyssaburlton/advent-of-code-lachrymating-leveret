@@ -1,7 +1,5 @@
-class Day3 : Solver {
-    override val day = 3
-
-    private val input = readStringList("3")
+class Day3(mode: SolverMode) : Solver(3, mode) {
+    private val input = readStringList(filename)
 
     override fun partA() = input.map(::splitIntoCompartments).sumOf(this::intersectAndScore)
 

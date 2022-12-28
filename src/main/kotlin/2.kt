@@ -1,7 +1,5 @@
-class Day2 : Solver {
-    override val day = 2
-
-    private val input = readStringList("2")
+class Day2(mode: SolverMode) : Solver(2, mode) {
+    private val input = readStringList(filename)
 
     override fun partA() = input.map(::getScore).sum()
 

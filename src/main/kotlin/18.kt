@@ -1,7 +1,5 @@
-class Day18 : Solver {
-    override val day = 18
-
-    private val input = readStringList("18").map(::parsePoint).toSet()
+class Day18(mode: SolverMode) : Solver(18, mode) {
+    private val input = readStringList(filename).map(::parsePoint).toSet()
 
     private val xMax = input.maxOf(Point3D::x) + 1
     private val xMin = input.minOf(Point3D::x) - 1

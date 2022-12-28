@@ -1,7 +1,5 @@
-class Day8 : Solver {
-    override val day = 8
-
-    private val grid = readStringGrid("8").transformValues(String::toInt)
+class Day8(mode: SolverMode) : Solver(8, mode) {
+    private val grid = readStringGrid(filename).transformValues(String::toInt)
 
     override fun partA() = grid.entries.count { (pt, height) ->
         val lines = getOrderedTreeLines(pt)

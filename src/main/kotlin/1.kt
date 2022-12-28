@@ -1,7 +1,5 @@
-class Day1 : Solver {
-    override val day = 1
-
-    private val input = readIntegerGroupedList("1")
+class Day1(mode: SolverMode) : Solver(1, mode) {
+    private val input = readIntegerGroupedList(filename)
 
     override fun partA() = input.maxOf { it.sum() }
 

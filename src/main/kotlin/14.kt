@@ -1,7 +1,5 @@
-class Day14 : Solver {
-    override val day = 14
-
-    private val input = readStringList("14")
+class Day14(mode: SolverMode) : Solver(14, mode) {
+    private val input = readStringList(filename)
     private val rockPoints = getRockPoints()
     private val lowestRock = rockPoints.maxOf { it.y }
 
@@ -44,7 +42,7 @@ class Day14 : Solver {
 
         val relevantSandPoints = sandPoints.getOrDefault(point.y + 1, emptySet())
         val newPoint = preferredPoints.firstOrNull { pt -> !isRockPoint(pt) && !relevantSandPoints.contains(pt) }
-        
+
         return if (newPoint == null) {
             point to prevPoints.filterNot { it == point }
         } else {

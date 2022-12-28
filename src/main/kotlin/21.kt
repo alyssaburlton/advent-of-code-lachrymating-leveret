@@ -1,7 +1,5 @@
-class Day21 : Solver {
-    override val day = 21
-
-    private val input = readStringList("21")
+class Day21(mode: SolverMode) : Solver(21, mode) {
+    private val input = readStringList(filename)
     private val numericMonkeys = input.mapNotNull(::parseNumericMonkey).toMap()
     private val equationMonkeys = input.mapNotNull(::parseEquationMonkey).toMap()
     private val operationToInverse: Map<String, (Long, Long) -> Long> = mapOf(

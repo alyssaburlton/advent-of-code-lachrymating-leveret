@@ -1,10 +1,8 @@
 data class Monkey(val items: List<Long>, val itemsInspected: Long, val operation: (Long) -> Long, val test: MonkeyTest)
 data class MonkeyTest(val divisor: Int, val monkeyIfTrue: Int, val monkeyIfFalse: Int)
 
-class Day11 : Solver {
-    override val day = 11
-
-    private val input: List<List<String>> = readGroupedList("11")
+class Day11(mode: SolverMode) : Solver(11, mode) {
+    private val input: List<List<String>> = readGroupedList(filename)
 
     override fun partA() = calculateMonkeyBusiness(20, true)
 

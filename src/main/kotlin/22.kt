@@ -1,7 +1,5 @@
-class Day22 : Solver {
-    override val day = 22
-
-    private val input = readGroupedList("22")
+class Day22(mode: SolverMode) : Solver(22, mode) {
+    private val input = readGroupedList(filename)
     private val instructions = parseInstructions(input[1].only())
     private val pointMap = parsePointMap(input[0])
     private val edgeRulesB = buildEdgeRules()

@@ -1,17 +1,15 @@
 @Suppress("UNCHECKED_CAST")
-class Day13NoParse : Solver {
-    override val day = 13
-
+class Day13NoParse(mode: SolverMode) : Solver(13, mode) {
     private val input by lazy { parsePackets(readGroupedList("13").flatten()) }
     private val dividerPackets = listOf(listOf(listOf(2)), listOf(listOf(6)))
 
     override fun partA() = input.chunked(2).mapIndexed { index, packet ->
-        if (Day13().inCorrectOrder(packet)) index + 1 else 0
+        if (Day13.inCorrectOrder(packet)) index + 1 else 0
     }.sum()
 
     override fun partB(): Any {
         val newInput = input + dividerPackets
-        val sorted = newInput.sortedWith(Day13()::compare)
+        val sorted = newInput.sortedWith(Day13::compare)
         return dividerPackets.map { sorted.indexOf(it) + 1 }.product()
     }
 

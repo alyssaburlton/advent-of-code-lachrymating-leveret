@@ -1,9 +1,7 @@
 import kotlin.math.sign
 
-class Day9 : Solver {
-    override val day = 9
-
-    private val input: List<String> = readStringList("9")
+class Day9(mode: SolverMode) : Solver(9, mode) {
+    private val input: List<String> = readStringList(filename)
 
     override fun partA() = moveRope(1)
 

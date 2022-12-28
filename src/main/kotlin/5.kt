@@ -1,7 +1,5 @@
-class Day5 : Solver {
-    override val day = 5
-
-    private val input = readGroupedList("5")
+class Day5(mode: SolverMode) : Solver(5, mode) {
+    private val input = readGroupedList(filename)
     private val stacks = parseStacks(input[0])
     private val instructions = input[1]
 

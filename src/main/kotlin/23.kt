@@ -1,7 +1,5 @@
-class Day23 : Solver {
-    override val day = 23
-
-    private val input = readStringGrid("23")
+class Day23(mode: SolverMode) : Solver(23, mode) {
+    private val input = readStringGrid(filename)
     private val startingElves = input.map.filter { it.value == "#" }.keys.groupBy { it.y }
 
     override fun partA() =

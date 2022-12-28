@@ -1,7 +1,5 @@
-class Day12 : Solver {
-    override val day = 12
-
-    private val input = readStringGrid("12")
+class Day12(mode: SolverMode) : Solver(12, mode) {
+    private val input = readStringGrid(filename)
     private val myPosition = input.entries.first { entry -> entry.value == "S" }.key
     private val desiredPosition = input.entries.first { entry -> entry.value == "E" }.key
 
