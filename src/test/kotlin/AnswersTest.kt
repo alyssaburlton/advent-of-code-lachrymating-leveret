@@ -147,7 +147,7 @@ class AnswersTest {
 
     @Test
     fun `Day 22`() {
-        // Day22(SolverMode.EXAMPLE).testDay(6032, 5031)
+        Day22(SolverMode.EXAMPLE).testDay(6032, "Not implemented")
         Day22(SolverMode.REAL).testDay(190066, 134170)
     }
 
