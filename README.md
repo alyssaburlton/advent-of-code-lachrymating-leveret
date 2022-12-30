@@ -22,7 +22,5 @@ And I'm also aiming ultimately for every solution to:
 - ✔ Run without any crazy memory/CPU requirements
 - ⌛ Run in <500ms (each part)
     - ✘ 16B: ~800ms
-    - ✘ 19A: ~1200ms
-    - ✘ 19B: ~3000ms
     - ✘ 20B: ~600ms
     - ✘ 23B: ~2500ms

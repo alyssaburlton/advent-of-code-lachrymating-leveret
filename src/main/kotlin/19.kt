@@ -18,131 +18,37 @@ data class OreState(
     val pendingRobot: OreType?
 )
 
-var maxStatesConsidered = 0
+private const val MAX_STATES_TO_KEEP = 250
 
 class Day19(mode: SolverMode) : Solver(19, mode) {
     private val blueprints = readStringList(filename).map(::parseBlueprint)
 
-    override fun partA(): Any {
-        val result = blueprints.sumOf {
-            it.id * scoreBlueprint(it, 24)
-        }
-
-        println("Max considered: $maxStatesConsidered")
-        maxStatesConsidered = 0
-
-        return result
+    override fun partA() = blueprints.sumOf {
+        it.id * scoreBlueprint(it, 24)
     }
 
-    override fun partB(): Any {
-        val result = blueprints.take(3).map { scoreBlueprint(it, 32) }.product()
-        println("Max considered: $maxStatesConsidered")
-
-        return result
-    }
+    override fun partB() = blueprints.take(3).map { scoreBlueprint(it, 32) }.product()
 
     private fun scoreBlueprint(blueprint: OreBlueprint, maxTime: Int): Int {
         val initialState = OreState(blueprint, OreType.values().associateWith { 0 }, mapOf(OreType.ORE to 1), null)
-        val naiveMin = computeNaiveMinimum(initialState, maxTime)
-        val resultingStates = processStates(listOf(initialState), maxTime) { states, timeRemaining ->
-            pruneBadStates(
-                states,
-                timeRemaining,
-                naiveMin
-            )
-        }
-
-        return resultingStates.maxOfOrNull { it.oreCount(OreType.GEODE) } ?: 0
-    }
-
-    /**
-     * Compute a naive minimum by doing a first pass, keeping crude track of the "best" N states at each step keeping N small
-     */
-    private fun computeNaiveMinimum(initialState: OreState, maxTime: Int) =
-        processStates(listOf(initialState), maxTime, ::keepNaiveBest).maxOf {
+        return processStates(listOf(initialState), maxTime).maxOf {
             it.oreCount(OreType.GEODE)
         }
-
-    @Suppress("UNUSED_PARAMETER")
-    private fun keepNaiveBest(states: List<OreState>, timeRemaining: Int) =
-        states.sortedByDescending(::naiveScore).take(200)
-
+    }
 
     private tailrec fun processStates(
         currentStates: List<OreState>,
-        timeRemaining: Int,
-        stateReducer: (List<OreState>, Int) -> List<OreState>
+        timeRemaining: Int
     ): List<OreState> {
         if (timeRemaining == 0) {
             return currentStates
         }
 
         val allSteps = takeAllSteps(currentStates, timeRemaining)
-        val pruned = stateReducer(allSteps, timeRemaining)
+        val pruned = allSteps.sortedByDescending(::naiveScore).take(MAX_STATES_TO_KEEP)
 
-        maxStatesConsidered = maxOf(maxStatesConsidered, pruned.size)
-
-        return processStates(pruned, timeRemaining - 1, stateReducer)
+        return processStates(pruned, timeRemaining - 1)
     }
-
-    private fun pruneBadStates(states: List<OreState>, timeRemaining: Int, naiveMax: Int): List<OreState> {
-        if (states.isEmpty()) return states
-
-        val guaranteed = maxOf(getGuaranteedMinimum(states, timeRemaining), naiveMax)
-        return states.filter { getOptimisticMaximum(it, timeRemaining) >= maxOf(guaranteed, 1) }
-    }
-
-    private fun getGuaranteedMinimum(states: List<OreState>, timeRemaining: Int) =
-        states.maxOf { getGuaranteedMinimum(it, timeRemaining) }
-
-    private fun getGuaranteedMinimum(state: OreState, timeRemaining: Int): Int {
-        val totallyGuaranteed =
-            state.oreCount(OreType.GEODE) + (timeRemaining * state.robotCount(OreType.GEODE))
-
-        val turnsUntilNextGeode = turnsUntilCanAffordNextGeodeBot(state, timeRemaining)
-        val additional = if (turnsUntilNextGeode > 0) {
-            (timeRemaining - turnsUntilNextGeode)
-        } else 0
-
-        return totallyGuaranteed + additional
-    }
-
-    private fun getOptimisticMaximum(state: OreState, timeRemaining: Int): Int {
-        val guaranteed = getGuaranteedMinimum(state, timeRemaining)
-
-        val obsidianPenalty = computeObsidianPenalty(state)
-        val geodePenalty = if (!canAffordRobot(state, OreType.GEODE)) 1 else 0
-        // it takes a turn to purchase a geode robot even if we can afford right away, and purchasing on the last turn achieves nothing
-        val fixedPenalty = 2
-
-        val optimisticTimeRemaining = timeRemaining - obsidianPenalty - geodePenalty - fixedPenalty
-
-        // Assume we buy a geode robot for every turn that's remaining. Then we get the nth triangle number of extra geodes
-        val extras = if (optimisticTimeRemaining > 0) nthTriangleNumber(optimisticTimeRemaining) else 0
-        return guaranteed + extras
-    }
-
-    /**
-     * If we have no obsidian robots, then the optimal path is for us to purchase them every turn until we hit the
-     * triangle number >= how much it costs for a geode robot.
-     *
-     * Assume we can afford to do this next turn, or this turn if we can afford Obsidian now.
-     */
-    private fun computeObsidianPenalty(state: OreState) =
-        if (state.robotCount(OreType.OBSIDIAN) == 0) {
-            val obsidianCost = state.blueprint.robotCosts[OreType.GEODE]!![OreType.OBSIDIAN]!!
-            val triangle = findFirstTriangleNumberGreaterThan(obsidianCost) + 1
-            if (canAffordRobot(state, OreType.OBSIDIAN)) {
-                triangle
-            } else {
-                triangle + 1
-            }
-        } else 0
-
-    private fun findFirstTriangleNumberGreaterThan(required: Int) =
-        (1..100).first { number -> nthTriangleNumber(number) >= required }
-
-    private fun nthTriangleNumber(n: Int) = (n * (n + 1)) / 2
 
     private fun takeAllSteps(states: List<OreState>, time: Int) =
         states.flatMap { makeAllChoices(it, time) }.map { gainResources(it, time) }.distinct()
@@ -186,14 +92,6 @@ class Day19(mode: SolverMode) : Solver(19, mode) {
 
     private fun shouldBuyRobot(state: OreState, type: OreType, timeRemaining: Int) =
         canAffordRobot(state, type) && mightNeedMoreRobots(state, type, timeRemaining)
-
-    private fun turnsUntilCanAffordNextGeodeBot(state: OreState, totalTime: Int): Int {
-        val states = (1..totalTime).runningFold(state) { currentState, _ ->
-            gainResources(currentState, 100)
-        }
-
-        return states.indexOfFirst { canAffordRobot(it, OreType.GEODE) } + 1
-    }
 
     private fun canAffordRobot(state: OreState, robot: OreType): Boolean {
         val costs = state.blueprint.robotCosts.getValue(robot)
