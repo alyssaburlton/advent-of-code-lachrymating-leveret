@@ -18,36 +18,77 @@ data class OreState(
     val pendingRobot: OreType?
 )
 
+var maxStatesConsidered = 0
+
 class Day19(mode: SolverMode) : Solver(19, mode) {
     private val blueprints = readStringList(filename).map(::parseBlueprint)
 
-    override fun partA() = blueprints.sumOf {
-        it.id * scoreBlueprint(it, 24)
+    override fun partA(): Any {
+        val result = blueprints.sumOf {
+            it.id * scoreBlueprint(it, 24)
+        }
+
+        println("Max considered: $maxStatesConsidered")
+        maxStatesConsidered = 0
+
+        return result
     }
 
-    override fun partB() = blueprints.take(3).map { scoreBlueprint(it, 32) }.product()
+    override fun partB(): Any {
+        val result = blueprints.take(3).map { scoreBlueprint(it, 32) }.product()
+        println("Max considered: $maxStatesConsidered")
+
+        return result
+    }
 
     private fun scoreBlueprint(blueprint: OreBlueprint, maxTime: Int): Int {
         val initialState = OreState(blueprint, OreType.values().associateWith { 0 }, mapOf(OreType.ORE to 1), null)
-        val resultingStates = processStates(listOf(initialState), maxTime)
-        return resultingStates.maxOfOrNull { it.resources.getOrDefault(OreType.GEODE, 0) } ?: 0
+        val naiveMin = computeNaiveMinimum(initialState, maxTime)
+        val resultingStates = processStates(listOf(initialState), maxTime) { states, timeRemaining ->
+            pruneBadStates(
+                states,
+                timeRemaining,
+                naiveMin
+            )
+        }
+
+        return resultingStates.maxOfOrNull { it.oreCount(OreType.GEODE) } ?: 0
     }
 
-    private tailrec fun processStates(currentStates: List<OreState>, timeRemaining: Int): List<OreState> {
+    /**
+     * Compute a naive minimum by doing a first pass, keeping crude track of the "best" N states at each step keeping N small
+     */
+    private fun computeNaiveMinimum(initialState: OreState, maxTime: Int) =
+        processStates(listOf(initialState), maxTime, ::keepNaiveBest).maxOf {
+            it.oreCount(OreType.GEODE)
+        }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun keepNaiveBest(states: List<OreState>, timeRemaining: Int) =
+        states.sortedByDescending(::naiveScore).take(200)
+
+
+    private tailrec fun processStates(
+        currentStates: List<OreState>,
+        timeRemaining: Int,
+        stateReducer: (List<OreState>, Int) -> List<OreState>
+    ): List<OreState> {
         if (timeRemaining == 0) {
             return currentStates
         }
 
         val allSteps = takeAllSteps(currentStates, timeRemaining)
-        val pruned = pruneBadStates(allSteps, timeRemaining)
+        val pruned = stateReducer(allSteps, timeRemaining)
 
-        return processStates(pruned, timeRemaining - 1)
+        maxStatesConsidered = maxOf(maxStatesConsidered, pruned.size)
+
+        return processStates(pruned, timeRemaining - 1, stateReducer)
     }
 
-    private fun pruneBadStates(states: List<OreState>, timeRemaining: Int): List<OreState> {
+    private fun pruneBadStates(states: List<OreState>, timeRemaining: Int, naiveMax: Int): List<OreState> {
         if (states.isEmpty()) return states
 
-        val guaranteed = getGuaranteedMinimum(states, timeRemaining)
+        val guaranteed = maxOf(getGuaranteedMinimum(states, timeRemaining), naiveMax)
         return states.filter { getOptimisticMaximum(it, timeRemaining) >= maxOf(guaranteed, 1) }
     }
 
@@ -56,7 +97,7 @@ class Day19(mode: SolverMode) : Solver(19, mode) {
 
     private fun getGuaranteedMinimum(state: OreState, timeRemaining: Int): Int {
         val totallyGuaranteed =
-            state.resources.getValue(OreType.GEODE) + (timeRemaining * state.robotCount(OreType.GEODE))
+            state.oreCount(OreType.GEODE) + (timeRemaining * state.robotCount(OreType.GEODE))
 
         val turnsUntilNextGeode = turnsUntilCanAffordNextGeodeBot(state, timeRemaining)
         val additional = if (turnsUntilNextGeode > 0) {
@@ -137,9 +178,9 @@ class Day19(mode: SolverMode) : Solver(19, mode) {
     private fun oreIsPlentiful(state: OreState, affordable: Set<OreType>): Boolean {
         val minCostThisTurn = affordable.minOf { state.blueprint.robotCosts[it]!![OreType.ORE]!! }
 
-        val currentOre = state.resources.getValue(OreType.ORE)
+        val currentOre = state.oreCount(OreType.ORE)
         val maxCost = state.blueprint.maxCostOfEachType.getValue(OreType.ORE)
-        val production = state.robots.getValue(OreType.ORE)
+        val production = state.robotCount(OreType.ORE)
         return currentOre - minCostThisTurn + production >= maxCost
     }
 
@@ -157,9 +198,12 @@ class Day19(mode: SolverMode) : Solver(19, mode) {
     private fun canAffordRobot(state: OreState, robot: OreType): Boolean {
         val costs = state.blueprint.robotCosts.getValue(robot)
         return costs.all { (oreType, amount) ->
-            state.resources.getOrDefault(oreType, 0) >= amount
+            state.oreCount(oreType) >= amount
         }
     }
+
+    private fun OreState.oreCount(oreType: OreType): Int =
+        resources.getOrDefault(oreType, 0)
 
     private fun OreState.robotCount(robotType: OreType): Int =
         robots.getOrDefault(robotType, 0)
@@ -173,7 +217,7 @@ class Day19(mode: SolverMode) : Solver(19, mode) {
         val potentialMaxResourceNeeded = state.blueprint.maxCostOfEachType.getValue(robotType) * (timeRemaining - 1)
 
         val amountWeWillGenerate = state.robotCount(robotType) * timeRemaining
-        val amountWeHave = state.resources.getValue(robotType)
+        val amountWeHave = state.oreCount(robotType)
 
         val diff = potentialMaxResourceNeeded - (amountWeWillGenerate + amountWeHave)
         return diff > 0
@@ -215,7 +259,7 @@ class Day19(mode: SolverMode) : Solver(19, mode) {
         val maxRobotsNeeded = timeRemaining - 1
 
         // Take into account how many we'll generate. Offset by 1 more turn than the above, in case we need to buy the very next turn
-        val oreToGenerate = (maxRobotsNeeded - 1) * state.robots.getOrDefault(oreType, 0)
+        val oreToGenerate = (maxRobotsNeeded - 1) * state.robotCount(oreType)
         return maxRobotsNeeded * state.blueprint.maxCostOfEachType.getValue(oreType) - oreToGenerate
     }
 
@@ -245,4 +289,12 @@ class Day19(mode: SolverMode) : Solver(19, mode) {
             maxRobotsOfEachType.toMap()
         )
     }
+
+    private fun naiveScore(state: OreState) =
+        (10000000 * state.robotCount(OreType.GEODE)) +
+                (1000000 * state.oreCount(OreType.GEODE)) +
+                (10000 * state.robotCount(OreType.OBSIDIAN)) +
+                (1000 * state.oreCount(OreType.OBSIDIAN)) +
+                (10 * state.robotCount(OreType.CLAY)) +
+                (1 * state.oreCount(OreType.CLAY))
 }

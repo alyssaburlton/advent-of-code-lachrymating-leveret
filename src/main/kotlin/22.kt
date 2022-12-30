@@ -6,7 +6,7 @@ class Day22(mode: SolverMode) : Solver(22, mode) {
 
     override fun partA() = tracePath(::wrapAroundSimple)
 
-    override fun partB() = tracePath(::wrapAroundCube)
+    override fun partB() = if (mode == SolverMode.EXAMPLE) "Not implemented" else tracePath(::wrapAroundCube)
 
     private fun tracePath(wrapFunction: (Point, Direction) -> Pair<Point, Direction>): Int {
         val startPos = pointMap.filter { entry -> entry.key.y == 0 && entry.value == "." }.keys.minBy { it.x }
@@ -152,6 +152,8 @@ class Day22(mode: SolverMode) : Solver(22, mode) {
      * Hardcoded wrap rules for my cube net
      */
     private fun buildEdgeRules(): List<CubeWrapRule> {
+        if (mode == SolverMode.EXAMPLE) return emptyList()
+
         return listOf(
             buildPencilRule(),
             buildRedSquiggleRule(),
