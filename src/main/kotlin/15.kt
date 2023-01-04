@@ -46,9 +46,10 @@ class Day15(mode: SolverMode) : Solver(15, mode) {
     private fun getBeaconsForRow() =
         sensors.map(Sensor::beaconPoint).filter { it.y == inputParams.yCoordPartA }.distinct()
 
-    private fun getSortedSensorRangesForRow() = sensors.map { sensor ->
+    private fun getSortedSensorRangesForRow() = sensors.mapNotNull { sensor ->
         val xRadius = sensor.range - abs(sensor.sensorPoint.y - inputParams.yCoordPartA)
-        sensor.sensorPoint.x - xRadius to sensor.sensorPoint.x + xRadius
+        if (xRadius <= 0) null else
+            sensor.sensorPoint.x - xRadius to sensor.sensorPoint.x + xRadius
     }.sortedBy { it.first }
 
     private fun findBeacon() = sensors.firstNotNullOf(::findValidBorderPoint).let(::tuningFrequency)

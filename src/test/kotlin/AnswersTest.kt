@@ -129,8 +129,8 @@ class AnswersTest {
     @Test
     fun `Day 15`() {
         Day15(SolverMode.EXAMPLE).testDay(26, 56000011)
-        Day15(SolverMode.REAL).testDay(5142231, 10884459367718L)
-        // TODO - Fix for REAL_A
+        Day15(SolverMode.REAL).testDay(5142231, 10884459367718)
+        Day15(SolverMode.REAL_A).testDay(4827924, 12977110973564)
     }
 
     @Test
