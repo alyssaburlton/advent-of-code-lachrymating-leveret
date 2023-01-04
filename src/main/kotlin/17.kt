@@ -38,10 +38,14 @@ class Day17(mode: SolverMode) : Solver(17, mode) {
             return dropRocks(totalRocksToDrop, state.skipAhead(totalRocksToDrop))
         }
 
-        return dropRocks(totalRocksToDrop, state.storeCurrentHash().dropRockUntilStopped())
+        return dropRocks(totalRocksToDrop, state.storeCurrentHash(totalRocksToDrop).dropRockUntilStopped())
     }
 
-    private fun ChamberState.storeCurrentHash(): ChamberState {
+    private fun ChamberState.storeCurrentHash(totalRocksToDrop: Long): ChamberState {
+        if (totalRocksToDrop < 10000) {
+            return this
+        }
+
         val newPair = toHash() to Pair(rocksDropped, height())
         return copy(statesEncountered = statesEncountered.plus(newPair))
     }
@@ -53,7 +57,7 @@ class Day17(mode: SolverMode) : Solver(17, mode) {
         val (prevRocksThrown, prevHeight) = statesEncountered.getValue(toHash())
         val heightGain = height() - prevHeight
         val cycleLength = rocksDropped - prevRocksThrown
-        val multiples = (totalRocksToDrop / cycleLength) - 2
+        val multiples = (totalRocksToDrop - rocksDropped) / cycleLength
 
         return copy(
             rocksDropped = rocksDropped + (multiples * cycleLength),

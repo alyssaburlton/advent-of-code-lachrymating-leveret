@@ -1,4 +1,4 @@
-val mode = SolverMode.REAL_A
+val mode = SolverMode.REAL
 
 val solvers = listOf(
     Day1(mode),
