@@ -30,20 +30,43 @@ class Day16(mode: SolverMode) : Solver(16, mode) {
         valve.flowRate > 0 && !state.releasedValves.any { it.second == valve }
 
     /**
-     * Leaving a valve to open a neighbour before coming back costs at least 3 turns.
-     * Leaving a valve to open a further valve before coming back costs at least 5 turns.
+     * To leave a valve, there must be something higher scoring enough to be worth it.
      *
-     * If there is not another unopened valve with a value > this number of turns, this isn't worth it
+     * Compare the path for:
+     *
+     *  - Releasing ours now, then going to the highest other valve and releasing it
+     *  - Going to the highest other valve, releasing it then returning to ours to release.
+     *
+     *  Look at direct neighbours, and then assume everything else is 2 steps away (if they're further we'd be more likely to want to release)
      */
-    private fun mustReleaseValve(state: VolcanoState, valve: Valve) =
-        valve.flowRate > (state.releasableNeighbours(valve).maxOfOrNull { it.flowRate - 3 }
-            ?: 0) && valve.flowRate > releasableValves(state).maxOf { it.flowRate } - 5
+    private fun mustReleaseValve(state: VolcanoState, valve: Valve, timeRemaining: Int) =
+        mustReleaseForNeighbours(state, valve, timeRemaining) &&
+                mustReleaseForFurtherValves(state, valve, timeRemaining)
+
+    private fun mustReleaseForNeighbours(state: VolcanoState, valve: Valve, timeRemaining: Int): Boolean {
+        val nextBestValve = state.releasableNeighbours(valve).maxOfOrNull { it.flowRate } ?: return true
+
+        val releaseNowScore = (timeRemaining * valve.flowRate) + ((timeRemaining - 2) * nextBestValve)
+        val releaseLaterScore = ((timeRemaining - 1) * nextBestValve) + ((timeRemaining - 3) * valve.flowRate)
+
+        return releaseNowScore >= releaseLaterScore
+    }
+
+    private fun mustReleaseForFurtherValves(state: VolcanoState, valve: Valve, timeRemaining: Int): Boolean {
+        val nonNeighbours = releasableValves(state) - valve - state.releasableNeighbours(valve)
+        val nextBestValve = nonNeighbours.maxOfOrNull { it.flowRate } ?: return true
+
+        val releaseNowScore = (timeRemaining * valve.flowRate) + ((timeRemaining - 3) * nextBestValve)
+        val releaseLaterScore = ((timeRemaining - 2) * nextBestValve) + ((timeRemaining - 5) * valve.flowRate)
+
+        return releaseNowScore >= releaseLaterScore
+    }
 
     private fun releasableValves(state: VolcanoState) =
         releasableValves.filter { canReleaseValve(state, it) }
 
     private fun VolcanoState.releasableNeighbours(valve: Valve) =
-        valvesMap.getValue(valve).filter { canReleaseValve(this, it) }
+        valvesMap.getValue(valve).filter { canReleaseValve(this, it) }.toSet()
 
     private fun countTotalReleased(state: VolcanoState) = state.releasedValves.sumOf {
         it.first * it.second.flowRate
@@ -54,18 +77,31 @@ class Day16(mode: SolverMode) : Solver(16, mode) {
 
     private fun getTheoreticalMax(timeRemaining: Int, currentState: VolcanoState): Int {
         val currentScore = countTotalReleased(currentState)
-        val currentValves = listOfNotNull(currentState.me.valve, currentState.elephant?.valve)
-        val canReleaseNow = currentValves.any { canReleaseValve(currentState, it) }
-        val releasableNeighbours = currentValves.flatMap { currentState.releasableNeighbours(it) }
 
-        val firstReleaseTime =
-            if (canReleaseNow) timeRemaining else if (releasableNeighbours.isNotEmpty()) timeRemaining - 1 else timeRemaining - 2
-        val optimisticReleaseTimes = (firstReleaseTime downTo 0 step 2)
+        val myReleaseTimes = getOptimisticReleaseTimes(timeRemaining, currentState, currentState.me.valve)
+        val elephantReleaseTimes = getOptimisticReleaseTimes(timeRemaining, currentState, currentState.elephant?.valve)
+
+        val times = (myReleaseTimes + elephantReleaseTimes).sortedDescending()
 
         return currentScore + releasableValves(currentState)
             .sortedByDescending { it.flowRate }
-            .zip(optimisticReleaseTimes)
+            .zip(times)
             .sumOf { it.first.flowRate * it.second }
+    }
+
+    private fun getOptimisticReleaseTimes(
+        timeRemaining: Int,
+        currentState: VolcanoState,
+        currentValve: Valve?
+    ): List<Int> {
+        currentValve ?: return emptyList()
+
+        val canReleaseNow = canReleaseValve(currentState, currentValve)
+        val releasableNeighbours = currentState.releasableNeighbours(currentValve)
+
+        val firstRelease =
+            if (canReleaseNow) timeRemaining else if (releasableNeighbours.isNotEmpty()) timeRemaining - 1 else timeRemaining - 2
+        return (firstRelease downTo 0 step 2).toList()
     }
 
     private fun findNaiveMaximum(initialState: VolcanoState, startingTime: Int) =
@@ -145,7 +181,7 @@ class Day16(mode: SolverMode) : Solver(16, mode) {
             val newReleased = state.releasedValves.plus(Pair(timeRemaining, currentPerson.valve))
             val releasedState = personUpdater(state.copy(releasedValves = newReleased), currentPerson.valve)
 
-            if (mustReleaseValve(state, currentPerson.valve)) {
+            if (mustReleaseValve(state, currentPerson.valve, timeRemaining)) {
                 listOf(releasedState)
             } else {
                 movements + releasedState
