@@ -166,6 +166,10 @@ class AnswersTest {
         Day20(SolverMode.EXAMPLE).testDay(3, 1623178306)
         Day20(SolverMode.REAL).testDay(4426, 8119137886612L)
         Day20(SolverMode.REAL_A).testDay(8764, 535648840980)
+
+        Day20Fast(SolverMode.EXAMPLE).testDay(3, 1623178306)
+        Day20Fast(SolverMode.REAL).testDay(4426, 8119137886612L)
+        Day20Fast(SolverMode.REAL_A).testDay(8764, 535648840980)
     }
 
     @Test

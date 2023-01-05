@@ -20,7 +20,7 @@ val solvers = listOf(
     Day17(mode),
     Day18(mode),
     Day19(mode),
-    Day20(mode),
+    Day20Fast(mode),
     Day21(mode),
     Day22(mode),
     Day23(mode),

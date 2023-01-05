@@ -22,5 +22,4 @@ And I'm also aiming ultimately for every solution to:
 - ✔ Run without any crazy memory/CPU requirements
 - ⌛ Run in <500ms (each part)
     - ✘ 16B: ~5000ms
-    - ✘ 20B: ~600ms
     - ✘ 23B: ~2500ms
