@@ -1,48 +1,68 @@
 class Day23(mode: SolverMode) : Solver(23, mode) {
     private val input = readStringGrid(filename)
     private val startingElves = input.map.filter { it.value == "#" }.keys.toList()
-    // private var filterTime = 0L
 
-    override fun partA() =
-        (0..9).fold(startingElves) { elves, round -> iterateElves(elves, round).newElves }.let(::countEmptySpaces)
+    override fun partA() = iterateElvesForCondition { _, rounds -> rounds == 10 }.let(::countEmptySpaces)
 
-    override fun partB() = iterateElvesUntilDone(startingElves)
+    override fun partB() =
+        iterateElvesForCondition { result, _ -> result.elvesWhoMightMoveNextTurn.isEmpty() }.roundNumber
 
-    private fun countEmptySpaces(elves: List<Point>): Int {
+    private fun countEmptySpaces(result: FinalElfResult): Int {
+        val elves = result.elves
         val xBounds = (elves.maxOf { it.x } - elves.minOf { it.x }) + 1
         val yBounds = (elves.maxOf { it.y } - elves.minOf { it.y }) + 1
         return (xBounds * yBounds) - elves.size
     }
 
-    private data class ElfRoundResult(val newElves: List<Point>, val elfMoved: Boolean)
+    private data class ElfRoundResult(
+        val newElves: List<Point>,
+        val elvesWhoMightMoveNextTurn: List<Point>,
+        val elvesWhoWontMoveNextTurn: List<Point>
+    )
 
-    private tailrec fun iterateElvesUntilDone(elves: List<Point>, roundNumber: Int = 0): Int {
-        val result = iterateElves(elves, roundNumber)
-        if (!result.elfMoved) {
-            // println(filterTime)
-            return roundNumber + 1
+    private data class FinalElfResult(val elves: List<Point>, val roundNumber: Int)
+
+    private fun iterateElvesForCondition(shouldStop: (result: ElfRoundResult, roundNumber: Int) -> Boolean) =
+        iterateElvesUntilDone(ElfRoundResult(startingElves, startingElves, emptyList()), 1, shouldStop)
+
+    private tailrec fun iterateElvesUntilDone(
+        prevResult: ElfRoundResult,
+        roundNumber: Int,
+        shouldStop: (result: ElfRoundResult, roundNumber: Int) -> Boolean
+    ): FinalElfResult {
+        val result = iterateElves(prevResult, roundNumber)
+        if (shouldStop(result, roundNumber)) {
+            return FinalElfResult(result.newElves, roundNumber)
         }
 
-        return iterateElvesUntilDone(result.newElves, roundNumber + 1)
+        return iterateElvesUntilDone(result, roundNumber + 1, shouldStop)
     }
 
-    private fun iterateElves(elves: List<Point>, roundNumber: Int): ElfRoundResult {
+    private fun iterateElves(prevResult: ElfRoundResult, roundNumber: Int): ElfRoundResult {
+        val elves = prevResult.newElves
+        val elvesToTryMoving = prevResult.elvesWhoMightMoveNextTurn
+
         val elvesByX = elves.groupBy { it.x }
-        val xBuckets = (elves.minOf { it.x }..elves.maxOf { it.x }).associateWith { x ->
+        val xBuckets = (elvesToTryMoving.minOf { it.x }..elvesToTryMoving.maxOf { it.x }).associateWith { x ->
             (x - 1..x + 1).flatMap { elvesByX[it] ?: emptyList() }
         }
 
-        val result: Map<Point?, List<Point>> = elves.groupBy { elf -> proposePosition(elf, xBuckets, roundNumber) }
+        val result: Map<Point?, List<Point>> =
+            elvesToTryMoving.groupBy { elf -> proposePosition(elf, xBuckets, roundNumber) }
+
+        val pointsInvolvedInMoving = result.minus(null).flatMap { (newPos, elves) -> elves + newPos!! }
+        val ptsThatMightMoveNextTime = pointsInvolvedInMoving.flatMap { it.neighboursWithDiagonals() }.toSet()
 
         val newElves =
-            result.flatMap { (newPos, elves) -> if (newPos == null || elves.size > 1) elves else listOf(newPos) }
-        return ElfRoundResult(newElves, result.size > 1)
+            result.flatMap { (newPos, elves) -> if (newPos == null || elves.size > 1) elves else listOf(newPos) } + prevResult.elvesWhoWontMoveNextTurn
+
+        val (elvesWhoMightMoveNextTime, elvesWhoWontMoveNextTime) = newElves.partition(ptsThatMightMoveNextTime::contains)
+
+        return ElfRoundResult(newElves, elvesWhoMightMoveNextTime, elvesWhoWontMoveNextTime)
     }
 
     private fun proposePosition(elf: Point, xBuckets: Map<Int, List<Point>>, roundNumber: Int): Point? {
-        // val filterStart = System.currentTimeMillis()
         val relevantElves = xBuckets[elf.x]!!.filter { it.y in (elf.y - 1..elf.y + 1) }
-        // filterTime += (System.currentTimeMillis() - filterStart)
 
         // Just us
         if (relevantElves.size == 1) {
@@ -61,7 +81,7 @@ class Day23(mode: SolverMode) : Solver(23, mode) {
             move(easternElves, Point(elf.x + 1, elf.y))
         )
 
-        val indices = (roundNumber..roundNumber + 3).map { it.mod(4) }
+        val indices = (roundNumber - 1..roundNumber + 2).map { it.mod(4) }
         return indices.firstNotNullOfOrNull { movements[it] }
     }
 
