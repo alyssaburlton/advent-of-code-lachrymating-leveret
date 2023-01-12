@@ -1,6 +1,9 @@
 class Day23(mode: SolverMode) : Solver(23, mode) {
     private val input = readStringGrid(filename)
     private val startingElves = input.map.filter { it.value == "#" }.keys.toList()
+    private var allElves = 0
+    private var elvesConsidered = 0
+    private var elvesActuallyMoved = 0
 
     override fun partA() = iterateElvesForCondition { _, rounds -> rounds == 10 }.let(::countEmptySpaces)
 
@@ -32,6 +35,13 @@ class Day23(mode: SolverMode) : Solver(23, mode) {
     ): FinalElfResult {
         val result = iterateElves(prevResult, roundNumber)
         if (shouldStop(result, roundNumber)) {
+            if (roundNumber < 12) {
+                elvesActuallyMoved = 0
+                elvesConsidered = 0
+                allElves = 0
+            } else {
+                println("Naive would have done $allElves. We considered $elvesConsidered, only $elvesActuallyMoved moved. Wastage is ${elvesConsidered - elvesActuallyMoved}")
+            }
             return FinalElfResult(result.newElves, roundNumber)
         }
 
@@ -42,6 +52,9 @@ class Day23(mode: SolverMode) : Solver(23, mode) {
         val elves = prevResult.newElves
         val elvesToTryMoving = prevResult.elvesWhoMightMoveNextTurn
 
+        allElves += elves.size
+        elvesConsidered += elvesToTryMoving.size
+
         val elvesByX = elves.groupBy { it.x }
         val xBuckets = (elvesToTryMoving.minOf { it.x }..elvesToTryMoving.maxOf { it.x }).associateWith { x ->
             (x - 1..x + 1).flatMap { elvesByX[it] ?: emptyList() }
@@ -50,11 +63,18 @@ class Day23(mode: SolverMode) : Solver(23, mode) {
         val result: Map<Point?, List<Point>> =
             elvesToTryMoving.groupBy { elf -> proposePosition(elf, xBuckets, roundNumber) }
 
-        val pointsInvolvedInMoving = result.minus(null).flatMap { (newPos, elves) -> elves + newPos!! }
-        val ptsThatMightMoveNextTime = pointsInvolvedInMoving.flatMap { it.neighboursWithDiagonals() }.toSet()
-
         val newElves =
             result.flatMap { (newPos, elves) -> if (newPos == null || elves.size > 1) elves else listOf(newPos) } + prevResult.elvesWhoWontMoveNextTurn
+
+        val elvesMoved = result.filter { (newPos, elves) -> newPos != null && elves.size == 1 }.size
+        elvesActuallyMoved += elvesMoved
+//        if (elvesMoved > 1200) {
+//            //Do old naive way
+//            return ElfRoundResult(newElves, newElves, emptyList())
+//        }
+
+        val pointsInvolvedInMoving = result.minus(null).flatMap { (newPos, elves) -> elves + newPos!! }
+        val ptsThatMightMoveNextTime = pointsInvolvedInMoving.flatMap { it.neighboursWithDiagonals() }.toSet()
 
         val (elvesWhoMightMoveNextTime, elvesWhoWontMoveNextTime) = newElves.partition(ptsThatMightMoveNextTime::contains)
 
