@@ -90,17 +90,18 @@ class Day23(mode: SolverMode) : Solver(23, mode) {
         elvesActuallyMoved += elvesMoved.size
 
         //Do old naive way
-        if (elvesMoved.size > 1000) {
-            val newElves =
-                result.flatMap { (newPos, elves) -> if (newPos !is Point || elves.size > 1) elves else listOf(newPos) } + prevResult.elvesWhoWereIsolated + prevResult.elvesWhoWereSurrounded
-            return ElfRoundResult(newElves, newElves, emptyList(), emptyList())
-        }
+//        if (elvesMoved.size > 1000) {
+//            val newElves =
+//                result.flatMap { (newPos, elves) -> if (newPos !is Point || elves.size > 1) elves else listOf(newPos) } + prevResult.elvesWhoWereIsolated + prevResult.elvesWhoWereSurrounded
+//            return ElfRoundResult(newElves, newElves, emptyList(), emptyList())
+//        }
 
-        // Any elves who did not move because they were surrounded might move next turn if an elf moved away from them
+        // Any elves who did not move because they were surrounded might move next turn if a neighbouring elf moved
         val surroundedStart = System.currentTimeMillis()
         val allSurroundedElves = prevResult.elvesWhoWereSurrounded + result.getOrDefault("surrounded", emptyList())
         val surroundedPtsThatMightMoveNext =
-            elvesMoved.values.flatMap { it.neighboursWithDiagonals() }.toSet()
+            elvesMoved.values.flatMap { it.neighboursWithDiagonals() }
+                .toSet() // This line and the equivalent for isolated are the crux. How can I do this faster?
         val (surroundedElvesWhoMightMoveNext, surroundedElvesWhoWontMoveNext) = allSurroundedElves.partition(
             surroundedPtsThatMightMoveNext::contains
         )
