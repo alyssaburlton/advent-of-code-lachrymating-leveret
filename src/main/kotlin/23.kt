@@ -90,11 +90,11 @@ class Day23(mode: SolverMode) : Solver(23, mode) {
         elvesActuallyMoved += elvesMoved.size
 
         //Do old naive way
-//        if (elvesMoved.size > 1000) {
-//            val newElves =
-//                result.flatMap { (newPos, elves) -> if (newPos !is Point || elves.size > 1) elves else listOf(newPos) } + prevResult.elvesWhoWereIsolated + prevResult.elvesWhoWereSurrounded
-//            return ElfRoundResult(newElves, newElves, emptyList(), emptyList())
-//        }
+        if (elvesMoved.size > 1) {
+            val newElves =
+                result.flatMap { (newPos, elves) -> if (newPos !is Point || elves.size > 1) elves else listOf(newPos) } + prevResult.elvesWhoWereIsolated + prevResult.elvesWhoWereSurrounded
+            return ElfRoundResult(newElves, newElves, emptyList(), emptyList())
+        }
 
         // Any elves who did not move because they were surrounded might move next turn if a neighbouring elf moved
         val surroundedStart = System.currentTimeMillis()
@@ -143,21 +143,22 @@ class Day23(mode: SolverMode) : Solver(23, mode) {
             return "isolated"
         }
 
-        val northernElves = relevantElves.filter { it.y < elf.y }
-        val southernElves = relevantElves.filter { it.y > elf.y }
-        val westernElves = relevantElves.filter { it.x < elf.x }
-        val easternElves = relevantElves.filter { it.x > elf.x }
+        if (relevantElves.size >= 7) {
+            return "surrounded"
+        }
 
         val movements = listOf(
-            move(northernElves, Point(elf.x, elf.y - 1)),
-            move(southernElves, Point(elf.x, elf.y + 1)),
-            move(westernElves, Point(elf.x - 1, elf.y)),
-            move(easternElves, Point(elf.x + 1, elf.y))
+            move(relevantElves, Point(elf.x, elf.y - 1)) { it.y < elf.y },
+            move(relevantElves, Point(elf.x, elf.y + 1)) { it.y > elf.y },
+            move(relevantElves, Point(elf.x - 1, elf.y)) { it.x < elf.x },
+            move(relevantElves, Point(elf.x + 1, elf.y)) { it.x > elf.x }
         )
 
         val indices = (roundNumber - 1..roundNumber + 2).map { it.mod(4) }
-        return indices.firstNotNullOfOrNull { movements[it] } ?: "surrounded"
+        return indices.firstNotNullOfOrNull { movements[it]() } ?: "surrounded"
     }
 
-    private fun move(elvesToCheck: List<Point>, newPoint: Point) = if (elvesToCheck.isEmpty()) newPoint else null
+    private fun move(relevantElves: List<Point>, newPoint: Point, filterFn: (elf: Point) -> Boolean) = { ->
+        if (relevantElves.none { filterFn(it) }) newPoint else null
+    }
 }
