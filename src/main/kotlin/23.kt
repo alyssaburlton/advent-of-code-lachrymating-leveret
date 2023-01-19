@@ -1,6 +1,12 @@
 class Day23(mode: SolverMode) : Solver(23, mode) {
     private val input = readStringGrid(filename)
     private val startingElves = input.map.filter { it.value == "#" }.keys.toList()
+    private val movementFns = listOf(
+        { elf: Point, relevantElves: List<Point> -> move(relevantElves, Point(elf.x, elf.y - 1)) { it.y < elf.y } },
+        { elf: Point, relevantElves: List<Point> -> move(relevantElves, Point(elf.x, elf.y + 1)) { it.y > elf.y } },
+        { elf: Point, relevantElves: List<Point> -> move(relevantElves, Point(elf.x - 1, elf.y)) { it.x < elf.x } },
+        { elf: Point, relevantElves: List<Point> -> move(relevantElves, Point(elf.x + 1, elf.y)) { it.x > elf.x } },
+    )
 
     override fun partA() =
         (0..9).fold(startingElves) { elves, round -> iterateElves(elves, round).newElves }.let(::countEmptySpaces)
@@ -30,14 +36,15 @@ class Day23(mode: SolverMode) : Solver(23, mode) {
             (x - 1..x + 1).flatMap { elvesByX[it] ?: emptyList() }
         }
 
-        val result: Map<Point?, List<Point>> = elves.groupBy { elf -> proposePosition(elf, xBuckets, roundNumber) }
+        val indices = (roundNumber..roundNumber + 3).map { it.mod(4) }
+        val result: Map<Point?, List<Point>> = elves.groupBy { elf -> proposePosition(elf, xBuckets, indices) }
 
         val newElves =
             result.flatMap { (newPos, elves) -> if (newPos == null || elves.size > 1) elves else listOf(newPos) }
         return ElfRoundResult(newElves, result.size > 1)
     }
 
-    private fun proposePosition(elf: Point, xBuckets: Map<Int, List<Point>>, roundNumber: Int): Point? {
+    private fun proposePosition(elf: Point, xBuckets: Map<Int, List<Point>>, indices: List<Int>): Point? {
         val relevantElves = xBuckets[elf.x]!!.filter { it.y in (elf.y - 1..elf.y + 1) }
 
         // Just us, or definitely surrounded without needing to do slower filters
@@ -45,18 +52,9 @@ class Day23(mode: SolverMode) : Solver(23, mode) {
             return null
         }
 
-        val movements = listOf(
-            move(relevantElves, Point(elf.x, elf.y - 1)) { it.y < elf.y },
-            move(relevantElves, Point(elf.x, elf.y + 1)) { it.y > elf.y },
-            move(relevantElves, Point(elf.x - 1, elf.y)) { it.x < elf.x },
-            move(relevantElves, Point(elf.x + 1, elf.y)) { it.x > elf.x }
-        )
-
-        val indices = (roundNumber..roundNumber + 3).map { it.mod(4) }
-        return indices.firstNotNullOfOrNull { movements[it]() }
+        return indices.firstNotNullOfOrNull { movementFns[it](elf, relevantElves) }
     }
 
-    private fun move(relevantElves: List<Point>, newPoint: Point, filterFn: (elf: Point) -> Boolean) = { ->
+    private fun move(relevantElves: List<Point>, newPoint: Point, filterFn: (elf: Point) -> Boolean) =
         if (relevantElves.none { filterFn(it) }) newPoint else null
-    }
 }
