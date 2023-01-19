@@ -1,12 +1,14 @@
 class Day23(mode: SolverMode) : Solver(23, mode) {
     private val input = readStringGrid(filename)
     private val startingElves = input.map.filter { it.value == "#" }.keys.toList()
-    private val movementFns = listOf(
-        { elf: Point, relevantElves: List<Point> -> move(relevantElves, Point(elf.x, elf.y - 1)) { it.y < elf.y } },
-        { elf: Point, relevantElves: List<Point> -> move(relevantElves, Point(elf.x, elf.y + 1)) { it.y > elf.y } },
-        { elf: Point, relevantElves: List<Point> -> move(relevantElves, Point(elf.x - 1, elf.y)) { it.x < elf.x } },
-        { elf: Point, relevantElves: List<Point> -> move(relevantElves, Point(elf.x + 1, elf.y)) { it.x > elf.x } },
-    )
+    private val movementFns =
+        listOf(Direction(0, -1), Direction(0, 1), Direction(-1, 0), Direction(1, 0)).map { direction ->
+            { elf: Point, relevantElves: List<Point> ->
+                if (relevantElves.none { if (direction.y != 0) it.y == elf.y + direction.y else it.x == elf.x + direction.x })
+                    elf + direction
+                else null
+            }
+        }
 
     override fun partA() =
         (0..9).fold(startingElves) { elves, round -> iterateElves(elves, round).newElves }.let(::countEmptySpaces)
@@ -54,7 +56,4 @@ class Day23(mode: SolverMode) : Solver(23, mode) {
 
         return indices.firstNotNullOfOrNull { movementFns[it](elf, relevantElves) }
     }
-
-    private fun move(relevantElves: List<Point>, newPoint: Point, filterFn: (elf: Point) -> Boolean) =
-        if (relevantElves.none { filterFn(it) }) newPoint else null
 }
