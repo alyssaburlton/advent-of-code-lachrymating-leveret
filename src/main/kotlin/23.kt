@@ -1,7 +1,7 @@
 class Day23(mode: SolverMode) : Solver(23, mode) {
     private val input = readStringGrid(filename)
     private val startingElves = input.map.filter { it.value == "#" }.keys.toList()
-    private val yMidpoint = computeMidpoint(startingElves)
+    private val startingThirds = computeMidpoints(startingElves)
     private val movementFns =
         listOf(Direction(0, -1), Direction(0, 1), Direction(-1, 0), Direction(1, 0)).map { direction ->
             { elf: Point, relevantElves: List<Point> ->
@@ -40,26 +40,30 @@ class Day23(mode: SolverMode) : Solver(23, mode) {
     private fun iterateElves(elves: List<Point>, roundNumber: Int): ElfRoundResult {
         val bucketStart = System.currentTimeMillis()
 
-        // val yMidpoint = computeMidpoint(elves)
-        val elvesByX = elves.groupBy { if (it.y >= yMidpoint) "${it.x}_bottom" else "${it.x}_top" }
+        val thirds = computeMidpoints(elves)
+        // val thirds = startingThirds
+        val elvesByX =
+            elves.groupBy { if (it.y < thirds.first) "${it.x}_1" else if (it.y < thirds.second) "${it.x}_2" else "${it.x}_3" }
+
         val xBuckets = (elves.minOf { it.x }..elves.maxOf { it.x }).associateWith { x ->
-            val pair = Pair(mutableListOf<Point>(), mutableListOf<Point>())
+            val pair = Triple(mutableListOf<Point>(), mutableListOf<Point>(), mutableListOf<Point>())
             (x - 1..x + 1).forEach {
-                elvesByX["${it}_top"]?.let(pair.first::addAll)
-                elvesByX["${it}_bottom"]?.let(pair.second::addAll)
+                elvesByX["${it}_1"]?.let(pair.first::addAll)
+                elvesByX["${it}_2"]?.let(pair.second::addAll)
+                elvesByX["${it}_3"]?.let(pair.third::addAll)
             }
 
             pair
         }
+        // println(xBuckets.mapValues { (key, value) -> Triple(value.first.size, value.second.size, value.third.size) })
 
         bucketTime += (System.currentTimeMillis() - bucketStart)
 
         val indices = (roundNumber..roundNumber + 3).map { it.mod(4) }
 
-        val propStart = System.currentTimeMillis()
+
         val result: Map<Point?, List<Point>> =
-            elves.groupBy { elf -> proposePosition(elf, xBuckets, yMidpoint, indices) }
-        proposalTime += (System.currentTimeMillis() - propStart)
+            elves.groupBy { elf -> proposePosition(elf, xBuckets, thirds, indices) }
 
         val newElves =
             result.flatMap { (newPos, elves) -> if (newPos == null || elves.size > 1) elves else listOf(newPos) }
@@ -68,14 +72,26 @@ class Day23(mode: SolverMode) : Solver(23, mode) {
 
     private fun proposePosition(
         elf: Point,
-        xBuckets: Map<Int, Pair<List<Point>, List<Point>>>,
-        midpoint: Int,
+        xBuckets: Map<Int, Triple<List<Point>, List<Point>, List<Point>>>,
+        thirds: Pair<Int, Int>,
         indices: List<Int>
     ): Point? {
         val buckets = xBuckets[elf.x]!!
         val bucket =
-            if (elf.y < midpoint - 1) buckets.first else if (elf.y > midpoint) buckets.second else buckets.first + buckets.second
+            if (elf.y < thirds.first - 1)
+                buckets.first
+            else if (elf.y <= thirds.first)
+                buckets.first + buckets.second
+            else if (elf.y < thirds.second - 1)
+                buckets.second
+            else if (elf.y <= thirds.second)
+                buckets.second + buckets.third
+            else
+                buckets.third
+
+        val propStart = System.currentTimeMillis()
         val relevantElves = bucket.filter { it.y in (elf.y - 1..elf.y + 1) }
+        proposalTime += (System.currentTimeMillis() - propStart)
 
         // Just us, or definitely surrounded without needing to do slower filters
         if (relevantElves.size == 1 || relevantElves.size >= 7) {
@@ -85,5 +101,8 @@ class Day23(mode: SolverMode) : Solver(23, mode) {
         return indices.firstNotNullOfOrNull { movementFns[it](elf, relevantElves) }
     }
 
-    private fun computeMidpoint(elves: List<Point>) = (elves.maxOf { it.y } + elves.minOf { it.y }) / 2
+    private fun computeMidpoints(elves: List<Point>): Pair<Int, Int> {
+        val sum = elves.maxOf { it.y } + elves.minOf { it.y }
+        return (sum / 3) to (2 * sum / 3)
+    }
 }
