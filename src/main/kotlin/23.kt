@@ -34,8 +34,8 @@ class Day23(mode: SolverMode) : Solver(23, mode) {
 
     private fun iterateElves(elves: List<Point>, roundNumber: Int): ElfRoundResult {
         val elvesByX = elves.groupBy { it.x }
-        val xBuckets = (elvesByX.keys.min()..elvesByX.keys.max()).associateWith { x ->
-            val bucket = (x - 1..x + 1).flatMapTo(mutableListOf()) { elvesByX[it] ?: emptyList() }
+        val xBuckets = elvesByX.keys.associateWith { x ->
+            val bucket = (x - 1..x + 1).flatMapTo(ArrayList(120)) { elvesByX[it] ?: emptyList() }
             bucket.sortBy { it.y }
             bucket
         }
@@ -53,13 +53,13 @@ class Day23(mode: SolverMode) : Solver(23, mode) {
         val startIx = bucket.findStartOfRange(elf.y - 1)
         val endIx = bucket.indexOfFirst(startIx) { it.y > elf.y + 1 }
         val actualEnd = if (endIx == -1) bucket.size else endIx
-        val relevantElves = bucket.subList(startIx, actualEnd)
 
         // Just us, or definitely surrounded without needing to do slower filters
-        if (relevantElves.size == 1 || relevantElves.size >= 7) {
+        if ((actualEnd - startIx) == 1 || (actualEnd - startIx) >= 7) {
             return null
         }
 
+        val relevantElves = bucket.subList(startIx, actualEnd)
         return indices.firstNotNullOfOrNull { movementFns[it](elf, relevantElves) }
     }
 
