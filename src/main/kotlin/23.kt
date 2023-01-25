@@ -34,8 +34,10 @@ class Day23(mode: SolverMode) : Solver(23, mode) {
 
     private fun iterateElves(elves: List<Point>, roundNumber: Int): ElfRoundResult {
         val elvesByX = elves.groupBy { it.x }
-        val xBuckets = (elves.minOf { it.x }..elves.maxOf { it.x }).associateWith { x ->
-            (x - 1..x + 1).flatMap { elvesByX[it] ?: emptyList() }
+        val xBuckets = (elvesByX.keys.min()..elvesByX.keys.max()).associateWith { x ->
+            val bucket = (x - 1..x + 1).flatMapTo(mutableListOf()) { elvesByX[it] ?: emptyList() }
+            bucket.sortBy { it.y }
+            bucket
         }
 
         val indices = (roundNumber..roundNumber + 3).map { it.mod(4) }
@@ -47,7 +49,11 @@ class Day23(mode: SolverMode) : Solver(23, mode) {
     }
 
     private fun proposePosition(elf: Point, xBuckets: Map<Int, List<Point>>, indices: List<Int>): Point? {
-        val relevantElves = xBuckets[elf.x]!!.filter { it.y in (elf.y - 1..elf.y + 1) }
+        val bucket = xBuckets[elf.x]!!
+        val startIx = bucket.findStartOfRange(elf.y - 1)
+        val endIx = bucket.indexOfFirst(startIx) { it.y > elf.y + 1 }
+        val actualEnd = if (endIx == -1) bucket.size else endIx
+        val relevantElves = bucket.subList(startIx, actualEnd)
 
         // Just us, or definitely surrounded without needing to do slower filters
         if (relevantElves.size == 1 || relevantElves.size >= 7) {
@@ -55,5 +61,20 @@ class Day23(mode: SolverMode) : Solver(23, mode) {
         }
 
         return indices.firstNotNullOfOrNull { movementFns[it](elf, relevantElves) }
+    }
+
+    /**
+     * Binary search for the start of the Y range that we care about
+     */
+    private tailrec fun List<Point>.findStartOfRange(rangeLowerBound: Int, min: Int = 0, max: Int = size - 1): Int {
+        if (min == max)
+            return min
+
+        val mid = (min + max) / 2
+        return if (this[mid].y < rangeLowerBound) {
+            findStartOfRange(rangeLowerBound, mid + 1, max)
+        } else {
+            findStartOfRange(rangeLowerBound, min, mid)
+        }
     }
 }

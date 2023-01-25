@@ -37,3 +37,11 @@ fun <E> List<E>.padWith(length: Int, value: E): List<E> {
     val diff = length - size
     return this + List(diff) { value }
 }
+
+inline fun <T> List<T>.indexOfFirst(startIx: Int, predicate: (T) -> Boolean): Int {
+    for (ix in (startIx until size)) {
+        if (predicate(this[ix]))
+            return ix
+    }
+    return -1
+}
